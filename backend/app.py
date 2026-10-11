@@ -34,7 +34,7 @@ CORS(
 # =========================================================
 
 def get_connection():
-    database_url = os.environ.get("DATABASE_URL")
+    database_url = os.environ.get("postgresql://finbuddy_db_vb77_user:cObQYT1E6W6MgsCynfOXidvyl9P1sgmi@dpg-db5rreu7bikc73dril70-a/finbuddy_db_vb77")
 
     if not database_url:
         raise RuntimeError("DATABASE_URL is not configured")
