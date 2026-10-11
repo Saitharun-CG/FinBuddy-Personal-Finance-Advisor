@@ -1,6 +1,7 @@
 /* FinPilot – main.js  (shared across all pages) */
 
-const API = 'http://localhost:5000/api';
+const API_URL =
+  "https://finbuddy-personal-finance-advisor-api.onrender.com";
 
 /* ── SESSION ──────────────────────────────────────────────────── */
 function getUser()  { return JSON.parse(sessionStorage.getItem('fp_user') || 'null'); }
