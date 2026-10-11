@@ -1,1229 +1,1317 @@
-```html
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#090b14">
-  <title>Dashboard | Smart Finance System</title>
-  <link rel="stylesheet" href="../css/style.css">
-
-  <style>
-    :root {
-      --dash-bg: #090b14;
-      --dash-panel: #111522;
-      --dash-panel2: #151a2b;
-      --dash-border: rgba(173, 183, 218, .13);
-      --dash-purple: #a78bfa;
-      --dash-text: #f4f5ff;
-      --dash-muted: #969fb8;
-      --dash-green: #54e3b1;
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      min-height: 100vh;
-      color: var(--dash-text);
-      background:
-        radial-gradient(ellipse at 12% 0%, rgba(124,58,237,.17), transparent 36%),
-        radial-gradient(ellipse at 100% 35%, rgba(14,165,233,.07), transparent 30%),
-        var(--dash-bg);
-      font-family: Inter, "Segoe UI", Arial, sans-serif;
-      line-height: 1.6;
-    }
-
-    button, a { font: inherit; }
-
-    button:focus-visible, a:focus-visible {
-      outline: 2px solid var(--dash-purple);
-      outline-offset: 4px;
-    }
-
-    .topbar {
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 18px;
-      padding: 17px clamp(18px, 4vw, 55px);
-      background: rgba(9,11,20,.88);
-      border-bottom: 1px solid var(--dash-border);
-      backdrop-filter: blur(22px);
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      color: white;
-      font-weight: 800;
-      font-size: 17px;
-      letter-spacing: -.4px;
-    }
-
-    .brand-icon {
-      display: grid;
-      place-items: center;
-      width: 42px;
-      height: 42px;
-      border-radius: 14px;
-      color: white;
-      font-size: 22px;
-      background: linear-gradient(135deg, #9b79ff, #6045d7);
-      box-shadow: 0 7px 24px rgba(124,58,237,.3);
-    }
-
-    .top-actions {
-      display: flex;
-      gap: 10px;
-    }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      min-height: 41px;
-      padding: 10px 15px;
-      border: 1px solid var(--dash-border);
-      border-radius: 11px;
-      color: #e8eaff;
-      background: #151a29;
-      cursor: pointer;
-      text-decoration: none;
-      font-size: 13px;
-      font-weight: 700;
-      transition: .2s ease;
-    }
-
-    .btn:hover {
-      transform: translateY(-2px);
-      border-color: rgba(167,139,250,.6);
-    }
-
-    .btn-primary {
-      color: white;
-      background: linear-gradient(120deg,#9169f5,#6848d6);
-      border-color: rgba(196,181,253,.3);
-      box-shadow: 0 6px 20px rgba(105,70,220,.18);
-    }
-
-    .btn-primary:hover { box-shadow: 0 9px 26px rgba(105,70,220,.3); }
-
-    .dashboard {
-      width: min(1400px, 100%);
-      margin: 0 auto;
-      padding: 34px clamp(16px, 4vw, 55px) 55px;
-    }
-
-    .welcome {
-      position: relative;
-      overflow: hidden;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 25px;
-      padding: clamp(24px, 4vw, 39px);
-      border: 1px solid rgba(167,139,250,.23);
-      border-radius: 23px;
-      background:
-        radial-gradient(ellipse at 90% 15%, rgba(139,92,246,.25), transparent 42%),
-        linear-gradient(120deg,#19182d,#121727 70%);
-      box-shadow: 0 20px 60px rgba(0,0,0,.18);
-    }
-
-    .welcome::after {
-      content: "◈";
-      position: absolute;
-      right: 8%;
-      top: -45px;
-      color: rgba(196,181,253,.055);
-      font-size: 220px;
-      pointer-events: none;
-    }
-
-    .welcome-content { position: relative; z-index: 1; min-width: 0; }
-
-    .eyebrow {
-      color: #bba7ff;
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-    }
-
-    .welcome h1 {
-      margin: 8px 0 5px;
-      font-size: clamp(27px,4vw,39px);
-      letter-spacing: -1.5px;
-      line-height: 1.2;
-      overflow-wrap: anywhere;
-    }
-
-    .welcome p {
-      margin: 6px 0 0;
-      color: #a6afc6;
-      font-size: 14px;
-    }
-
-    .welcome .email { overflow-wrap: anywhere; }
-
-    .welcome-badge {
-      position: relative;
-      z-index: 1;
-      flex-shrink: 0;
-      padding: 14px 17px;
-      border: 1px solid rgba(167,139,250,.23);
-      border-radius: 16px;
-      background: rgba(10,12,25,.55);
-      text-align: center;
-    }
-
-    .welcome-badge span {
-      display: block;
-      color: #a8b0c6;
-      font-size: 11px;
-    }
-
-    .welcome-badge strong {
-      display: block;
-      margin-top: 3px;
-      color: #d6c7ff;
-      font-size: 16px;
-    }
-
-    .section-heading {
-      display: flex;
-      justify-content: space-between;
-      align-items: end;
-      gap: 15px;
-      margin: 33px 0 16px;
-    }
-
-    .section-heading h2 {
-      margin: 0;
-      color: #f5f5ff;
-      font-size: 19px;
-      letter-spacing: -.4px;
-    }
-
-    .section-heading p {
-      margin: 4px 0 0;
-      color: var(--dash-muted);
-      font-size: 12px;
-    }
-
-    .period {
-      color: #a9b3cc;
-      font-size: 12px;
-      white-space: nowrap;
-    }
-
-    .status {
-      margin: 20px 0 0;
-      padding: 11px 15px;
-      border: 1px solid var(--dash-border);
-      border-radius: 11px;
-      color: #c0c8dd;
-      background: rgba(18,23,39,.8);
-      font-size: 12px;
-      overflow-wrap: anywhere;
-    }
-
-    .status.success {
-      color: #7ce9bf;
-      border-color: rgba(84,227,177,.2);
-      background: rgba(16,185,129,.06);
-    }
-
-    .status.error {
-      color: #ff9aaa;
-      border-color: rgba(255,113,139,.3);
-      background: rgba(255,113,139,.07);
-    }
-
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(4,minmax(0,1fr));
-      gap: 16px;
-    }
-
-    .kpi {
-      position: relative;
-      overflow: hidden;
-      min-width: 0;
-      padding: 23px 21px;
-      border: 1px solid var(--dash-border);
-      border-radius: 18px;
-      background: linear-gradient(145deg,#151a2a,#101420);
-      transition: transform .2s ease, border-color .2s ease;
-    }
-
-    .kpi:hover {
-      transform: translateY(-3px);
-      border-color: rgba(167,139,250,.38);
-    }
-
-    .kpi::after {
-      content: "";
-      position: absolute;
-      top: -47px;
-      right: -35px;
-      width: 105px;
-      height: 105px;
-      border-radius: 50%;
-      background: var(--glow,rgba(167,139,250,.13));
-      filter: blur(8px);
-      pointer-events: none;
-    }
-
-    .kpi.income { --glow: rgba(167,139,250,.19); }
-    .kpi.expense { --glow: rgba(255,113,139,.14); }
-    .kpi.savings { --glow: rgba(84,227,177,.17); }
-    .kpi.tax { --glow: rgba(113,183,255,.16); }
-
-    .kpi-top {
-      position: relative;
-      z-index: 1;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .kpi-label {
-      color: #a9b2c9;
-      font-size: 12px;
-      font-weight: 650;
-    }
-
-    .kpi-icon {
-      display: grid;
-      place-items: center;
-      width: 36px;
-      height: 36px;
-      flex-shrink: 0;
-      border-radius: 11px;
-      background: rgba(167,139,250,.12);
-      color: #c7b5ff;
-      font-size: 17px;
-    }
-
-    .expense .kpi-icon { color: #ff91a5; background: rgba(255,113,139,.1); }
-    .savings .kpi-icon { color: var(--dash-green); background: rgba(84,227,177,.1); }
-    .tax .kpi-icon { color: #82c4ff; background: rgba(113,183,255,.1); }
-
-    .amount {
-      position: relative;
-      z-index: 1;
-      margin: 19px 0 6px;
-      font-size: clamp(20px,2vw,27px);
-      line-height: 1.3;
-      font-weight: 800;
-      letter-spacing: -.8px;
-      overflow-wrap: anywhere;
-    }
-
-    .income .amount { color: #d4c5ff; }
-    .expense .amount { color: #ff91a5; }
-    .savings .amount { color: var(--dash-green); }
-    .tax .amount { color: #82c4ff; }
-
-    .kpi-note {
-      margin: 0;
-      color: #7f8aa6;
-      font-size: 11px;
-    }
-
-    .main-grid {
-      display: grid;
-      grid-template-columns: minmax(0,1.35fr) minmax(280px,1fr);
-      gap: 17px;
-      margin-top: 18px;
-    }
-
-    .panel {
-      min-width: 0;
-      padding: 24px;
-      border: 1px solid var(--dash-border);
-      border-radius: 19px;
-      background: linear-gradient(145deg,rgba(20,25,42,.98),rgba(14,18,30,.98));
-      box-shadow: 0 12px 34px rgba(0,0,0,.1);
-    }
-
-    .panel-title {
-      margin: 0;
-      font-size: 16px;
-      color: #f3f4ff;
-      letter-spacing: -.3px;
-    }
-
-    .panel-subtitle {
-      margin: 5px 0 21px;
-      color: var(--dash-muted);
-      font-size: 12px;
-    }
-
-    .score-layout {
-      display: flex;
-      align-items: center;
-      gap: 25px;
-      min-height: 155px;
-    }
-
-    .score-ring {
-      --score-angle: 0deg;
-      display: grid;
-      place-items: center;
-      width: 140px;
-      height: 140px;
-      flex-shrink: 0;
-      border-radius: 50%;
-      background: conic-gradient(#a78bfa var(--score-angle),#272b40 0deg);
-      position: relative;
-    }
-
-    .score-ring::before {
-      content: "";
-      position: absolute;
-      inset: 9px;
-      border-radius: 50%;
-      background: #14182a;
-    }
-
-    .score-inner {
-      position: relative;
-      z-index: 1;
-      text-align: center;
-    }
-
-    .score-number {
-      display: block;
-      font-size: 35px;
-      line-height: 1.2;
-      font-weight: 850;
-      letter-spacing: -1px;
-    }
-
-    .score-out-of {
-      color: #929bb5;
-      font-size: 11px;
-    }
-
-    .score-info { min-width: 0; }
-
-    .score-info strong {
-      color: #d7c8ff;
-      font-size: 15px;
-    }
-
-    .score-info p {
-      margin: 6px 0 12px;
-      color: #9ca6be;
-      font-size: 12px;
-    }
-
-    .progress {
-      height: 7px;
-      overflow: hidden;
-      border-radius: 99px;
-      background: #292e43;
-    }
-
-    .progress-fill {
-      width: 0;
-      height: 100%;
-      border-radius: inherit;
-      background: linear-gradient(90deg,#7754e8,#b6a0ff);
-      transition: width .5s ease;
-    }
-
-    .rank-card {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      margin-bottom: 18px;
-      padding: 18px;
-      border: 1px solid rgba(167,139,250,.19);
-      border-radius: 15px;
-      background: linear-gradient(115deg,rgba(124,58,237,.14),rgba(99,102,241,.04));
-    }
-
-    .rank-emblem {
-      display: grid;
-      place-items: center;
-      width: 59px;
-      height: 59px;
-      flex-shrink: 0;
-      border-radius: 17px;
-      background: linear-gradient(145deg,#8c69f1,#4935a5);
-      box-shadow: 0 7px 20px rgba(124,58,237,.22);
-      color: white;
-      font-size: 27px;
-    }
-
-    .rank-caption {
-      color: #a3acc3;
-      font-size: 11px;
-    }
-
-    .rank-name {
-      margin: 2px 0;
-      color: #d9cbff;
-      font-size: 23px;
-      font-weight: 850;
-      letter-spacing: -.6px;
-    }
-
-    .rank-description {
-      margin: 0;
-      color: #a0aac1;
-      font-size: 12px;
-    }
-
-    .rank-footer {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      margin-top: 14px;
-      color: #a2abc2;
-      font-size: 11px;
-    }
-
-    .rank-footer strong { color: #d6c7ff; }
-
-    .category-row { margin: 17px 0; }
-
-    .category-meta {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 8px;
-      font-size: 12px;
-    }
-
-    .category-name { color: #dfe3f3; overflow-wrap: anywhere; }
-    .category-value { color: #aab4cc; white-space: nowrap; }
-
-    .category-bar {
-      height: 7px;
-      overflow: hidden;
-      border-radius: 99px;
-      background: #272c40;
-    }
-
-    .category-bar div {
-      height: 100%;
-      width: 0;
-      border-radius: inherit;
-      background: linear-gradient(90deg,#7955e9,#b6a0ff);
-    }
-
-    .empty-state {
-      padding: 23px 12px;
-      text-align: center;
-      color: #8e98b2;
-      font-size: 12px;
-      border: 1px dashed rgba(160,174,210,.17);
-      border-radius: 12px;
-    }
-
-    .empty-state span {
-      display: block;
-      margin-bottom: 8px;
-      font-size: 25px;
-    }
-
-    .table-panel { margin-top: 18px; }
-
-    .table-wrap {
-      overflow-x: auto;
-      width: 100%;
-    }
-
-    table {
-      width: 100%;
-      min-width: 510px;
-      border-collapse: collapse;
-      font-size: 12px;
-    }
-
-    th {
-      padding: 13px 12px;
-      color: #939db7;
-      background: rgba(255,255,255,.025);
-      text-align: left;
-      text-transform: uppercase;
-      letter-spacing: .7px;
-      font-size: 10px;
-      font-weight: 750;
-    }
-
-    td {
-      padding: 15px 12px;
-      color: #dce1f1;
-      border-bottom: 1px solid rgba(160,174,210,.09);
-      overflow-wrap: anywhere;
-    }
-
-    tbody tr:last-child td { border-bottom: none; }
-    tbody tr:hover td { background: rgba(167,139,250,.035); }
-
-    .expense-amount { color: #ff9bad; font-weight: 750; }
-
-    .tools-grid {
-      display: grid;
-      grid-template-columns: repeat(3,minmax(0,1fr));
-      gap: 12px;
-      margin-top: 17px;
-    }
-
-    .tool-link {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      min-width: 0;
-      padding: 16px;
-      border: 1px solid var(--dash-border);
-      border-radius: 14px;
-      color: #f1f2ff;
-      background: #121727;
-      text-decoration: none;
-      transition: .2s ease;
-    }
-
-    .tool-link:hover {
-      transform: translateY(-3px);
-      border-color: rgba(167,139,250,.45);
-      background: #181d31;
-    }
-
-    .tool-icon {
-      display: grid;
-      place-items: center;
-      width: 40px;
-      height: 40px;
-      flex-shrink: 0;
-      border-radius: 12px;
-      background: rgba(167,139,250,.12);
-      font-size: 19px;
-    }
-
-    .tool-link strong {
-      display: block;
-      font-size: 12px;
-    }
-
-    .tool-link small {
-      display: block;
-      margin-top: 3px;
-      color: #8994ae;
-      font-size: 10px;
-    }
-
-    .footer {
-      padding: 23px 0 0;
-      margin-top: 35px;
-      border-top: 1px solid var(--dash-border);
-      display: flex;
-      justify-content: space-between;
-      gap: 15px;
-      color: #78839d;
-      font-size: 11px;
-    }
-
-    @media (max-width: 1050px) {
-      .kpi-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
-      .main-grid { grid-template-columns: 1fr; }
-      .tools-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
-    }
-
-    @media (max-width: 600px) {
-      .topbar { padding: 12px 15px; }
-      .brand { font-size: 13px; gap: 8px; }
-      .brand-icon { width: 35px; height: 35px; }
-      .top-actions { gap: 6px; }
-      .btn { padding: 9px 10px; font-size: 11px; }
-      .dashboard { padding: 23px 14px 35px; }
-      .welcome { padding: 23px 19px; }
-      .welcome-badge { display: none; }
-      .welcome h1 { font-size: 29px; }
-      .section-heading { margin-top: 27px; }
-      .kpi-grid { gap: 10px; }
-      .kpi { padding: 16px 13px; border-radius: 15px; }
-      .kpi-label { font-size: 11px; }
-      .kpi-icon { width: 30px; height: 30px; font-size: 14px; }
-      .amount { font-size: clamp(17px,4.7vw,23px); margin-top: 14px; }
-      .kpi-note { font-size: 10px; }
-      .panel { padding: 19px 15px; }
-      .score-layout { flex-direction: column; align-items: flex-start; gap: 18px; }
-      .score-ring { width: 125px; height: 125px; align-self: center; }
-      .score-info { width: 100%; }
-      .tools-grid { grid-template-columns: 1fr; }
-      .tool-link { padding: 13px; }
-      .footer { flex-direction: column; gap: 5px; }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
-        animation: none !important;
-        transition: none !important;
-      }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#080a12">
+<title>Dashboard | Smart Finance System</title>
+<link rel="stylesheet" href="../css/style.css">
+
+<style>
+/* PREMIUM DASHBOARD — SELF-CONTAINED DESIGN */
+:root {
+  --db-bg:#080a12;
+  --db-panel:#111629;
+  --db-panel2:#171d33;
+  --db-line:rgba(177,184,222,.13);
+  --db-purple:#a78bfa;
+  --db-cyan:#67e8f9;
+  --db-green:#4adeb2;
+  --db-red:#fb819a;
+  --db-muted:#919bb7;
+  --db-white:#f7f7ff;
+}
+
+* { box-sizing:border-box; }
+
+body {
+  margin:0 !important;
+  min-height:100vh;
+  color:var(--db-white) !important;
+  background:
+    radial-gradient(ellipse at 20% 0%,rgba(124,58,237,.15),transparent 35%),
+    radial-gradient(ellipse at 95% 70%,rgba(14,165,233,.07),transparent 32%),
+    var(--db-bg) !important;
+  font-family:Inter,"Segoe UI",sans-serif !important;
+}
+
+.db-app {
+  display:grid;
+  grid-template-columns:250px minmax(0,1fr);
+  min-height:100vh;
+}
+
+.db-sidebar {
+  position:sticky;
+  top:0;
+  height:100vh;
+  padding:25px 16px;
+  background:rgba(10,13,24,.97);
+  border-right:1px solid var(--db-line);
+  display:flex;
+  flex-direction:column;
+  z-index:10;
+}
+
+.db-brand {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:5px 9px 28px;
+  font-size:15px;
+  font-weight:850;
+  letter-spacing:-.4px;
+}
+
+.db-logo {
+  width:43px;
+  height:43px;
+  flex-shrink:0;
+  display:grid;
+  place-items:center;
+  border-radius:15px;
+  background:linear-gradient(135deg,#a78bfa,#5b45d7);
+  box-shadow:0 8px 28px #7549d94d;
+  font-size:23px;
+}
+
+.db-brand small {
+  display:block;
+  color:var(--db-muted);
+  font-size:9px;
+  letter-spacing:1.7px;
+  margin-top:3px;
+}
+
+.db-nav-label {
+  color:#707b99;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:1.6px;
+  padding:13px 12px 8px;
+}
+
+.db-nav {
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+}
+
+.db-nav a {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:12px;
+  color:#aab3cb;
+  border:1px solid transparent;
+  border-radius:12px;
+  text-decoration:none;
+  font-size:12px;
+  font-weight:650;
+  transition:.2s ease;
+}
+
+.db-nav a:hover,
+.db-nav a.db-active {
+  color:#f0eaff;
+  background:linear-gradient(100deg,#8b5cf626,#6366f10c);
+  border-color:#a78bfa24;
+}
+
+.db-nav a.db-active {
+  box-shadow:inset 3px 0 #a78bfa;
+}
+
+.db-nav-icon {
+  width:24px;
+  text-align:center;
+  font-size:18px;
+}
+
+.db-sidebar-bottom {
+  margin-top:auto;
+}
+
+.db-sidebar-card {
+  padding:16px;
+  border:1px solid #a78bfa29;
+  border-radius:16px;
+  background:linear-gradient(145deg,#8b5cf71a,#151a2d);
+}
+
+.db-sidebar-card strong {
+  display:block;
+  font-size:12px;
+  margin-bottom:6px;
+}
+
+.db-sidebar-card p {
+  color:var(--db-muted);
+  font-size:11px;
+  line-height:1.6;
+  margin:0;
+}
+
+.db-main {
+  min-width:0;
+  padding:28px clamp(18px,3vw,44px);
+}
+
+.db-topbar {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:14px;
+  margin-bottom:27px;
+}
+
+.db-breadcrumb {
+  color:var(--db-muted);
+  font-size:11px;
+}
+
+.db-breadcrumb strong { color:#e7e6ff; }
+
+.db-actions {
+  display:flex;
+  gap:9px;
+}
+
+.db-btn {
+  display:inline-flex;
+  justify-content:center;
+  align-items:center;
+  gap:8px;
+  min-height:39px;
+  padding:9px 14px;
+  border:1px solid var(--db-line);
+  border-radius:11px;
+  color:#e8eaff !important;
+  background:#151a2b;
+  cursor:pointer;
+  text-decoration:none !important;
+  font-size:11px;
+  font-weight:750;
+  transition:.2s ease;
+}
+
+.db-btn:hover {
+  transform:translateY(-2px);
+  border-color:#a78bfa88;
+}
+
+.db-btn-primary {
+  color:white !important;
+  background:linear-gradient(120deg,#8b5cf6,#6350df);
+  border-color:#c4b5fd44;
+  box-shadow:0 6px 20px #6946dc30;
+}
+
+.db-btn:disabled { opacity:.6; cursor:wait; }
+
+.db-hero {
+  position:relative;
+  overflow:hidden;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:25px;
+  padding:clamp(25px,4vw,42px);
+  min-height:220px;
+  border:1px solid #a78bfa38;
+  border-radius:25px;
+  background:
+    radial-gradient(ellipse at 83% 12%,#67e8f923,transparent 32%),
+    radial-gradient(ellipse at 92% 95%,#8b5cf74a,transparent 45%),
+    linear-gradient(125deg,#1a1c35,#111629 75%);
+  box-shadow:0 22px 65px #0000002b;
+}
+
+.db-hero::after {
+  content:"✧";
+  position:absolute;
+  right:7%;
+  top:-80px;
+  color:#c4b5fd0c;
+  font-size:280px;
+  pointer-events:none;
+}
+
+.db-hero-content { position:relative;z-index:1;min-width:0; }
+
+.db-eyebrow {
+  color:#c4b5fd;
+  font-size:10px;
+  font-weight:850;
+  letter-spacing:2px;
+}
+
+.db-hero h1 {
+  color:white !important;
+  margin:12px 0 9px;
+  font-size:clamp(27px,3vw,40px);
+  font-weight:850;
+  letter-spacing:-1.5px;
+  line-height:1.18;
+  overflow-wrap:anywhere;
+}
+
+.db-hero p {
+  color:#a8b2cb !important;
+  margin:5px 0;
+  font-size:12px;
+}
+
+.db-hero-email { overflow-wrap:anywhere; }
+
+.db-hero-badge {
+  position:relative;
+  z-index:1;
+  flex-shrink:0;
+  min-width:155px;
+  padding:21px 18px;
+  text-align:center;
+  border:1px solid #a78bfa35;
+  border-radius:19px;
+  background:#080b18a6;
+  box-shadow:0 10px 35px #00000020;
+}
+
+.db-hero-badge-icon {
+  font-size:33px;
+  color:#c4b5fd;
+  margin-bottom:8px;
+}
+
+.db-hero-badge span {
+  display:block;
+  color:var(--db-muted);
+  font-size:9px;
+  letter-spacing:1px;
+}
+
+.db-hero-badge strong {
+  display:block;
+  color:#ddd1ff;
+  font-size:12px;
+  margin-top:5px;
+}
+
+.db-status {
+  margin-top:15px;
+  padding:10px 13px;
+  border:1px solid var(--db-line);
+  border-radius:11px;
+  color:#bfc8dd;
+  background:#121729bd;
+  font-size:11px;
+  overflow-wrap:anywhere;
+}
+
+.db-status.success {
+  color:#75e9bd;
+  border-color:#4adeb233;
+  background:#10b9810c;
+}
+
+.db-status.error {
+  color:#ff9eae;
+  border-color:#fb819a44;
+  background:#fb718510;
+}
+
+.db-section-head {
+  display:flex;
+  justify-content:space-between;
+  align-items:end;
+  gap:15px;
+  margin:31px 0 16px;
+}
+
+.db-section-head h2 {
+  color:#f7f7ff !important;
+  margin:0;
+  font-size:17px;
+  font-weight:800;
+  letter-spacing:-.45px;
+}
+
+.db-section-head p {
+  margin:5px 0 0;
+  color:var(--db-muted) !important;
+  font-size:11px;
+}
+
+.db-period {
+  color:#a5aec7;
+  font-size:10px;
+  white-space:nowrap;
+}
+
+.db-kpis {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:15px;
+}
+
+.db-kpi {
+  position:relative;
+  overflow:hidden;
+  min-width:0;
+  padding:21px;
+  border:1px solid var(--db-line);
+  border-radius:19px;
+  background:linear-gradient(145deg,#171d32,#101525);
+  box-shadow:0 14px 38px #0000001b;
+  transition:transform .22s ease,border-color .22s ease;
+}
+
+.db-kpi:hover {
+  transform:translateY(-4px);
+  border-color:#a78bfa66;
+}
+
+.db-kpi::after {
+  content:"";
+  position:absolute;
+  top:-47px;
+  right:-36px;
+  width:112px;
+  height:112px;
+  border-radius:50%;
+  background:var(--db-glow,#a78bfa26);
+  filter:blur(9px);
+  pointer-events:none;
+}
+
+.db-kpi-income {--db-glow:#a78bfa36;}
+.db-kpi-expense {--db-glow:#fb819a25;}
+.db-kpi-saving {--db-glow:#4adeb22b;}
+.db-kpi-tax {--db-glow:#67e8f926;}
+
+.db-kpi-top {
+  position:relative;
+  z-index:1;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+}
+
+.db-kpi-label {
+  color:#aab4cc;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.7px;
+}
+
+.db-kpi-icon {
+  display:grid;
+  place-items:center;
+  width:38px;
+  height:38px;
+  flex-shrink:0;
+  border-radius:13px;
+  color:#cbbaff;
+  background:#a78bfa1e;
+  font-size:18px;
+}
+
+.db-kpi-expense .db-kpi-icon {color:#ff91a5;background:#fb819a17;}
+.db-kpi-saving .db-kpi-icon {color:#4adeb2;background:#4adeb218;}
+.db-kpi-tax .db-kpi-icon {color:#67e8f9;background:#67e8f918;}
+
+.db-kpi-value {
+  position:relative;
+  z-index:1;
+  color:#ddd2ff;
+  margin:17px 0 6px;
+  font-size:clamp(18px,1.65vw,25px);
+  font-weight:850;
+  letter-spacing:-.8px;
+  line-height:1.35;
+  overflow-wrap:anywhere;
+}
+
+.db-kpi-expense .db-kpi-value {color:#ff91a5;}
+.db-kpi-saving .db-kpi-value {color:#4adeb2;}
+.db-kpi-tax .db-kpi-value {color:#82d5ff;}
+
+.db-kpi-note {
+  color:#8792ad;
+  font-size:10px;
+  margin:0;
+}
+
+.db-grid {
+  display:grid;
+  grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);
+  gap:17px;
+}
+
+.db-panel {
+  min-width:0;
+  padding:23px;
+  border:1px solid var(--db-line);
+  border-radius:20px;
+  background:linear-gradient(145deg,#151b2e,#101525);
+  box-shadow:0 14px 38px #00000017;
+}
+
+.db-panel h3 {
+  color:#f5f5ff !important;
+  margin:0;
+  font-size:15px;
+  font-weight:800;
+}
+
+.db-panel-sub {
+  margin:5px 0 20px;
+  color:var(--db-muted) !important;
+  font-size:11px;
+}
+
+.db-score-layout {
+  display:flex;
+  align-items:center;
+  gap:24px;
+  min-height:155px;
+}
+
+.db-score-ring {
+  --db-score-angle:0deg;
+  position:relative;
+  flex-shrink:0;
+  display:grid;
+  place-items:center;
+  width:138px;
+  height:138px;
+  border-radius:50%;
+  background:conic-gradient(from -90deg,#a78bfa 0deg,#67e8f9 var(--db-score-angle),#292e43 var(--db-score-angle),#292e43 360deg);
+  box-shadow:0 0 34px #8b5cf71c;
+}
+
+.db-score-ring::before {
+  content:"";
+  position:absolute;
+  inset:9px;
+  border-radius:50%;
+  background:#151a2d;
+}
+
+.db-score-inner {
+  position:relative;
+  z-index:1;
+  text-align:center;
+}
+
+.db-score-number {
+  display:block;
+  font-size:35px;
+  font-weight:850;
+  letter-spacing:-1.5px;
+  line-height:1.2;
+}
+
+.db-score-out {
+  color:#909bb5;
+  font-size:10px;
+}
+
+.db-score-info {min-width:0;flex:1;}
+
+.db-score-info strong {
+  color:#d8c9ff;
+  font-size:13px;
+}
+
+.db-score-info p {
+  color:#9ba6c0 !important;
+  font-size:11px;
+  line-height:1.7;
+  margin:7px 0 13px;
+}
+
+.db-progress {
+  height:7px;
+  border-radius:50px;
+  overflow:hidden;
+  background:#292e43;
+}
+
+.db-progress-fill {
+  height:100%;
+  width:0;
+  border-radius:inherit;
+  background:linear-gradient(90deg,#7c3aed,#c4b5fd,#67e8f9);
+  transition:width .5s ease;
+}
+
+.db-rank-card {
+  display:flex;
+  align-items:center;
+  gap:15px;
+  padding:18px;
+  border:1px solid #a78bfa2e;
+  border-radius:17px;
+  background:linear-gradient(120deg,#8b5cf71c,#6366f10a);
+}
+
+.db-rank-icon {
+  display:grid;
+  place-items:center;
+  width:61px;
+  height:61px;
+  flex-shrink:0;
+  border-radius:18px;
+  background:linear-gradient(140deg,#9b7af7,#5140b7);
+  color:white;
+  font-size:27px;
+  box-shadow:0 8px 24px #6946dc35;
+}
+
+.db-rank-caption {
+  color:#9ca7c1;
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:1px;
+}
+
+.db-rank-name {
+  color:#d8c8ff !important;
+  margin:3px 0;
+  font-size:22px;
+  font-weight:850;
+}
+
+.db-rank-description {
+  color:#a3adc5 !important;
+  margin:0;
+  font-size:10px;
+  line-height:1.6;
+}
+
+.db-rank-footer {
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  margin-top:14px;
+  color:#9ca7bf;
+  font-size:10px;
+}
+
+.db-rank-footer strong {color:#d8c8ff;}
+
+.db-category {margin:17px 0;}
+
+.db-category-meta {
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:8px;
+  font-size:11px;
+}
+
+.db-category-name {color:#e0e5f5;overflow-wrap:anywhere;}
+.db-category-value {color:#aab4cc;white-space:nowrap;}
+
+.db-category-track {
+  height:7px;
+  overflow:hidden;
+  border-radius:99px;
+  background:#292e43;
+}
+
+.db-category-fill {
+  height:100%;
+  width:0;
+  border-radius:inherit;
+  background:linear-gradient(90deg,#7c3aed,#c4b5fd,#67e8f9);
+}
+
+.db-empty {
+  padding:22px 13px;
+  text-align:center;
+  color:#8e99b4;
+  font-size:11px;
+  line-height:1.8;
+  border:1px dashed #a0aed22a;
+  border-radius:13px;
+}
+
+.db-empty-icon {
+  display:block;
+  font-size:27px;
+  margin-bottom:5px;
+}
+
+.db-table-panel {margin-top:18px;}
+
+.db-table-wrap {width:100%;overflow-x:auto;}
+
+.db-table {
+  width:100%;
+  min-width:490px;
+  border-collapse:collapse;
+  font-size:11px;
+}
+
+.db-table th {
+  padding:13px 12px;
+  color:#9da8c1;
+  text-align:left;
+  background:#ffffff06;
+  border-bottom:1px solid var(--db-line);
+  font-size:9px;
+  letter-spacing:.8px;
+}
+
+.db-table td {
+  padding:14px 12px;
+  color:#e1e5f3;
+  border-bottom:1px solid #a0aed214;
+  overflow-wrap:anywhere;
+}
+
+.db-table tbody tr:hover td {background:#a78bfa09;}
+.db-table tbody tr:last-child td {border-bottom:0;}
+.db-table .db-expense-amount {color:#ff9bad;font-weight:750;}
+
+.db-tools {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:13px;
+}
+
+.db-tool {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-width:0;
+  padding:16px;
+  border:1px solid var(--db-line);
+  border-radius:16px;
+  color:#f1f2ff !important;
+  background:linear-gradient(145deg,#161c30,#101525);
+  text-decoration:none !important;
+  transition:transform .2s ease,border-color .2s ease;
+}
+
+.db-tool:hover {
+  transform:translateY(-3px);
+  border-color:#a78bfa70;
+}
+
+.db-tool-icon {
+  display:grid;
+  place-items:center;
+  width:41px;
+  height:41px;
+  flex-shrink:0;
+  border-radius:13px;
+  background:#a78bfa1b;
+  font-size:19px;
+}
+
+.db-tool strong {display:block;font-size:11px;}
+.db-tool small {display:block;margin-top:4px;color:#909bb5;font-size:9px;}
+
+.db-footer {
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  margin-top:33px;
+  padding-top:20px;
+  border-top:1px solid var(--db-line);
+  color:#78839e;
+  font-size:10px;
+}
+
+.db-app a:focus-visible,
+.db-app button:focus-visible {
+  outline:2px solid #a78bfa;
+  outline-offset:3px;
+}
+
+@media(max-width:1200px) {
+  .db-app {grid-template-columns:205px minmax(0,1fr);}
+  .db-main {padding:24px 20px;}
+  .db-kpis {grid-template-columns:repeat(2,minmax(0,1fr));}
+  .db-tools {grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+
+@media(max-width:850px) {
+  .db-app {grid-template-columns:1fr;}
+  .db-sidebar {
+    position:relative;
+    top:auto;
+    height:auto;
+    padding:13px 15px;
+    border-right:0;
+    border-bottom:1px solid var(--db-line);
+  }
+  .db-brand {padding:0 5px 12px;}
+  .db-nav-label,.db-sidebar-bottom {display:none;}
+  .db-nav {
+    flex-direction:row;
+    overflow-x:auto;
+    padding-bottom:4px;
+  }
+  .db-nav a {
+    flex-shrink:0;
+    padding:10px;
+    font-size:10px;
+  }
+  .db-nav a.db-active {box-shadow:inset 0 -2px #a78bfa;}
+  .db-nav-icon {width:auto;}
+  .db-main {padding:22px 18px;}
+  .db-grid {grid-template-columns:1fr;}
+}
+
+@media(max-width:560px) {
+  .db-main {padding:17px 12px;}
+  .db-topbar {align-items:flex-start;flex-direction:column;margin-bottom:18px;}
+  .db-actions {width:100%;}
+  .db-actions .db-btn {flex:1;}
+  .db-hero {padding:23px 19px;min-height:0;}
+  .db-hero h1 {font-size:29px;}
+  .db-hero-badge {display:none;}
+  .db-kpis {gap:10px;}
+  .db-kpi {padding:15px 12px;border-radius:15px;}
+  .db-kpi-label {font-size:9px;letter-spacing:.2px;}
+  .db-kpi-icon {width:30px;height:30px;font-size:14px;border-radius:10px;}
+  .db-kpi-value {font-size:clamp(16px,4.5vw,22px);margin-top:13px;}
+  .db-kpi-note {font-size:9px;}
+  .db-panel {padding:18px 14px;}
+  .db-score-layout {flex-direction:column;align-items:stretch;}
+  .db-score-ring {width:125px;height:125px;align-self:center;}
+  .db-score-info {width:100%;}
+  .db-tools {grid-template-columns:1fr;}
+  .db-section-head h2 {font-size:15px;}
+  .db-footer {flex-direction:column;}
+}
+
+@media(prefers-reduced-motion:reduce) {
+  *,*::before,*::after {
+    animation:none !important;
+    transition:none !important;
+    scroll-behavior:auto !important;
+  }
+}
+</style>
 </head>
 
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <span class="brand-icon">◈</span>
-      <span>Smart Finance System</span>
+<div class="db-app">
+
+  <aside class="db-sidebar">
+    <div class="db-brand">
+      <span class="db-logo">◈</span>
+      <span>SMART FINANCE<small>PERSONAL WEALTH SPACE</small></span>
     </div>
 
-    <div class="top-actions">
-      <button type="button" class="btn" id="refresh-button">
-        ↻ Refresh
-      </button>
-      <button type="button" class="btn btn-primary" id="logout-button">
-        ⇥ Logout
-      </button>
-    </div>
-  </header>
+    <div class="db-nav-label">WORKSPACE</div>
+    <nav class="db-nav" aria-label="Main navigation">
+      <a class="db-active" href="dashboard.html"><span class="db-nav-icon">▦</span>Dashboard</a>
+      <a href="expenses.html"><span class="db-nav-icon">↗</span>Expenses</a>
+      <a href="tax.html"><span class="db-nav-icon">₹</span>Tax calculator</a>
+      <a href="investments.html"><span class="db-nav-icon">◈</span>Investments</a>
+      <a href="schemes.html"><span class="db-nav-icon">◇</span>Government schemes</a>
+      <a href="chatbot.html"><span class="db-nav-icon">✧</span>Finance assistant</a>
+    </nav>
 
-  <main class="dashboard">
-    <section class="welcome">
-      <div class="welcome-content">
-        <div class="eyebrow">YOUR FINANCIAL OVERVIEW</div>
+    <div class="db-sidebar-bottom">
+      <div class="db-sidebar-card">
+        <strong>✦ Your money, your future</strong>
+        <p>Track your habits, understand your spending and work towards your financial goals.</p>
+      </div>
+    </div>
+  </aside>
+
+  <main class="db-main">
+    <header class="db-topbar">
+      <div class="db-breadcrumb">Workspace&nbsp; / &nbsp;<strong>Dashboard</strong></div>
+      <div class="db-actions">
+        <button type="button" class="db-btn" id="refresh-button">↻ &nbsp;Refresh data</button>
+        <button type="button" class="db-btn db-btn-primary" id="logout-button">⇥ &nbsp;Logout</button>
+      </div>
+    </header>
+
+    <section class="db-hero">
+      <div class="db-hero-content">
+        <div class="db-eyebrow">✦ YOUR PERSONAL FINANCIAL OVERVIEW</div>
         <h1 id="greet">Welcome!</h1>
-        <p class="email" id="user-email">Loading your account...</p>
+        <p class="db-hero-email" id="user-email">Loading your account...</p>
         <p>Make smarter decisions. Build better financial habits.</p>
       </div>
-      <div class="welcome-badge">
+      <div class="db-hero-badge">
+        <div class="db-hero-badge-icon">✧</div>
         <span>YOUR FINANCIAL SPACE</span>
-        <strong>✦ Personal Dashboard</strong>
+        <strong>Personal dashboard</strong>
       </div>
     </section>
 
-    <div id="status" class="status" role="status" aria-live="polite">
+    <div id="status" class="db-status" role="status" aria-live="polite">
       Loading your financial information...
     </div>
 
-    <div class="section-heading">
+    <div class="db-section-head">
       <div>
-        <h2>Financial Snapshot</h2>
-        <p>Your income, spending and savings at a glance.</p>
+        <h2>Financial snapshot</h2>
+        <p>Your money at a glance, all in one place.</p>
       </div>
-      <span class="period">Monthly overview</span>
+      <span class="db-period">◷ &nbsp; MONTHLY OVERVIEW</span>
     </div>
 
-    <section class="kpi-grid">
-      <article class="kpi income">
-        <div class="kpi-top">
-          <span class="kpi-label">MONTHLY INCOME</span>
-          <span class="kpi-icon">↗</span>
+    <section class="db-kpis">
+      <article class="db-kpi db-kpi-income">
+        <div class="db-kpi-top">
+          <span class="db-kpi-label">MONTHLY INCOME</span>
+          <span class="db-kpi-icon">↗</span>
         </div>
-        <p class="amount" id="kpi-income">—</p>
-        <p class="kpi-note">Your monthly earnings</p>
+        <p class="db-kpi-value" id="kpi-income">₹0.00</p>
+        <p class="db-kpi-note">Your monthly earnings</p>
       </article>
 
-      <article class="kpi expense">
-        <div class="kpi-top">
-          <span class="kpi-label">MONTHLY EXPENSES</span>
-          <span class="kpi-icon">↘</span>
+      <article class="db-kpi db-kpi-expense">
+        <div class="db-kpi-top">
+          <span class="db-kpi-label">MONTHLY EXPENSES</span>
+          <span class="db-kpi-icon">↘</span>
         </div>
-        <p class="amount" id="kpi-exp">—</p>
-        <p class="kpi-note">Your recorded spending</p>
+        <p class="db-kpi-value" id="kpi-exp">₹0.00</p>
+        <p class="db-kpi-note">Your recorded spending</p>
       </article>
 
-      <article class="kpi savings">
-        <div class="kpi-top">
-          <span class="kpi-label">MONTHLY SAVINGS</span>
-          <span class="kpi-icon">✦</span>
+      <article class="db-kpi db-kpi-saving">
+        <div class="db-kpi-top">
+          <span class="db-kpi-label">MONTHLY SAVINGS</span>
+          <span class="db-kpi-icon">✦</span>
         </div>
-        <p class="amount" id="kpi-save">—</p>
-        <p class="kpi-note" id="savings-note">Income minus expenses</p>
+        <p class="db-kpi-value" id="kpi-save">₹0.00</p>
+        <p class="db-kpi-note" id="savings-note">Income minus expenses</p>
       </article>
 
-      <article class="kpi tax">
-        <div class="kpi-top">
-          <span class="kpi-label">ESTIMATED ANNUAL TAX</span>
-          <span class="kpi-icon">₹</span>
+      <article class="db-kpi db-kpi-tax">
+        <div class="db-kpi-top">
+          <span class="db-kpi-label">ESTIMATED ANNUAL TAX</span>
+          <span class="db-kpi-icon">₹</span>
         </div>
-        <p class="amount" id="kpi-tax">—</p>
-        <p class="kpi-note">Indicative estimate only</p>
+        <p class="db-kpi-value" id="kpi-tax">₹0.00</p>
+        <p class="db-kpi-note">Indicative estimate only</p>
       </article>
     </section>
 
-    <div class="section-heading">
+    <div class="db-section-head">
       <div>
-        <h2>Your Financial Progress</h2>
-        <p>Understand your habits and celebrate your progress.</p>
+        <h2>Your financial progress</h2>
+        <p>Small improvements can build better money habits over time.</p>
       </div>
     </div>
 
-    <section class="main-grid">
-      <article class="panel">
-        <h3 class="panel-title">Financial Health Score</h3>
-        <p class="panel-subtitle">A snapshot of your current financial health.</p>
+    <section class="db-grid">
+      <article class="db-panel">
+        <h3>Financial health score</h3>
+        <p class="db-panel-sub">Your current financial health at a glance.</p>
 
-        <div class="score-layout">
-          <div class="score-ring" id="score-ring" role="img"
-               aria-label="Financial health score">
-            <div class="score-inner">
-              <span class="score-number" id="score-num">0</span>
-              <span class="score-out-of">out of 100</span>
+        <div class="db-score-layout">
+          <div class="db-score-ring" id="score-ring" role="img" aria-label="Financial health score">
+            <div class="db-score-inner">
+              <span class="db-score-number" id="score-num">0</span>
+              <span class="db-score-out">OUT OF 100</span>
             </div>
           </div>
 
-          <div class="score-info">
+          <div class="db-score-info">
             <strong id="score-title">Building your financial profile</strong>
-            <p id="score-description">
-              Your score will appear when your dashboard loads.
-            </p>
-            <div class="progress">
-              <div class="progress-fill" id="score-bar"></div>
-            </div>
+            <p id="score-description">Your score will appear when the dashboard loads.</p>
+            <div class="db-progress"><div class="db-progress-fill" id="score-bar"></div></div>
           </div>
         </div>
       </article>
 
-      <article class="panel">
-        <h3 class="panel-title">Savings Rank</h3>
-        <p class="panel-subtitle">Your rank reflects savings and spending habits.</p>
+      <article class="db-panel">
+        <h3>Your savings rank</h3>
+        <p class="db-panel-sub">A motivational level based on your financial habits.</p>
 
-        <div class="rank-card">
-          <div class="rank-emblem" id="rank-emblem">♜</div>
+        <div class="db-rank-card">
+          <div class="db-rank-icon" id="rank-emblem">✦</div>
           <div>
-            <div class="rank-caption">CURRENT RANK</div>
-            <div class="rank-name" id="rank-name">Calculating...</div>
-            <p class="rank-description" id="rank-description">
-              Your financial rank will appear here.
-            </p>
+            <div class="db-rank-caption">YOUR CURRENT LEVEL</div>
+            <div class="db-rank-name" id="rank-name">Calculating...</div>
+            <p class="db-rank-description" id="rank-description">Your rank will appear here.</p>
           </div>
         </div>
 
-        <div class="progress">
-          <div class="progress-fill" id="rank-bar"></div>
+        <div class="db-progress" style="margin-top:18px">
+          <div class="db-progress-fill" id="rank-bar"></div>
         </div>
-        <div class="rank-footer">
+        <div class="db-rank-footer">
           <span>Monthly savings rate</span>
           <strong id="savings-rate">—</strong>
         </div>
       </article>
     </section>
 
-    <section class="main-grid">
-      <article class="panel">
-        <h3 class="panel-title">Expense Breakdown</h3>
-        <p class="panel-subtitle">See where your recorded money is going.</p>
+    <section class="db-grid" style="margin-top:18px">
+      <article class="db-panel">
+        <h3>Expense breakdown</h3>
+        <p class="db-panel-sub">See where your recorded money is going.</p>
         <div id="category-list">
-          <div class="empty-state">
-            <span>◌</span>
-            Expense information will appear here.
-          </div>
+          <div class="db-empty"><span class="db-empty-icon">◌</span>Expense information will appear here.</div>
         </div>
       </article>
 
-      <article class="panel">
-        <h3 class="panel-title">Savings Insight</h3>
-        <p class="panel-subtitle">A simple view of your monthly money habits.</p>
+      <article class="db-panel">
+        <h3>Savings insights</h3>
+        <p class="db-panel-sub">Understand how your income is divided.</p>
 
-        <div class="category-row">
-          <div class="category-meta">
-            <span class="category-name">Income saved</span>
-            <span class="category-value" id="insight-saved">—</span>
+        <div class="db-category">
+          <div class="db-category-meta">
+            <span class="db-category-name">Income saved</span>
+            <span class="db-category-value" id="insight-saved">—</span>
           </div>
-          <div class="category-bar">
-            <div id="insight-bar"></div>
+          <div class="db-category-track"><div class="db-category-fill" id="insight-bar"></div></div>
+        </div>
+
+        <div class="db-category">
+          <div class="db-category-meta">
+            <span class="db-category-name">Income spent</span>
+            <span class="db-category-value" id="insight-spent">—</span>
+          </div>
+          <div class="db-category-track">
+            <div class="db-category-fill" id="insight-spent-bar" style="background:linear-gradient(90deg,#e65d7a,#ff9bad)"></div>
           </div>
         </div>
 
-        <div class="category-row">
-          <div class="category-meta">
-            <span class="category-name">Income spent</span>
-            <span class="category-value" id="insight-spent">—</span>
-          </div>
-          <div class="category-bar">
-            <div id="insight-spent-bar"
-                 style="background:linear-gradient(90deg,#e65d7a,#ff9bad)"></div>
-          </div>
-        </div>
-
-        <div class="empty-state" id="insight-message">
+        <div class="db-empty" id="insight-message">
           Your personalized insight will appear here.
         </div>
       </article>
     </section>
 
-    <section class="panel table-panel">
-      <div class="section-heading" style="margin:0 0 18px">
+    <section class="db-panel db-table-panel">
+      <div class="db-section-head" style="margin:0 0 17px">
         <div>
-          <h2>Recent Expenses</h2>
+          <h2>Recent expenses</h2>
           <p>Your latest recorded transactions.</p>
         </div>
-        <a class="btn" href="expenses.html">+ Manage Expenses</a>
+        <a class="db-btn" href="expenses.html">+ Manage expenses</a>
       </div>
 
-      <div class="table-wrap">
-        <table>
+      <div class="db-table-wrap">
+        <table class="db-table">
           <thead>
-            <tr>
-              <th>Date</th>
-              <th>Category</th>
-              <th>Note</th>
-              <th>Amount</th>
-            </tr>
+            <tr><th>Date</th><th>Category</th><th>Note</th><th>Amount</th></tr>
           </thead>
           <tbody id="recent-expenses">
-            <tr>
-              <td colspan="4">Loading expenses...</td>
-            </tr>
+            <tr><td colspan="4">Loading expenses...</td></tr>
           </tbody>
         </table>
       </div>
     </section>
 
-    <section>
-      <div class="section-heading">
-        <div>
-          <h2>Finance Tools</h2>
-          <p>Everything you need to take control of your finances.</p>
-        </div>
+    <div class="db-section-head">
+      <div>
+        <h2>Your finance tools</h2>
+        <p>Everything you need to manage your financial journey.</p>
       </div>
+    </div>
 
-      <div class="tools-grid">
-        <a class="tool-link" href="../index.html">
-          <span class="tool-icon">⌂</span>
-          <span><strong>Home</strong><small>Explore the platform</small></span>
-        </a>
-
-        <a class="tool-link" href="expenses.html">
-          <span class="tool-icon">↗</span>
-          <span><strong>Expense Tracker</strong><small>Manage your spending</small></span>
-        </a>
-
-        <a class="tool-link" href="tax.html">
-          <span class="tool-icon">₹</span>
-          <span><strong>Tax Calculator</strong><small>Explore tax estimates</small></span>
-        </a>
-
-        <a class="tool-link" href="investments.html">
-          <span class="tool-icon">◈</span>
-          <span><strong>Investment Planner</strong><small>Explore investment options</small></span>
-        </a>
-
-        <a class="tool-link" href="schemes.html">
-          <span class="tool-icon">◇</span>
-          <span><strong>Government Schemes</strong><small>Discover available schemes</small></span>
-        </a>
-
-        <a class="tool-link" href="chatbot.html">
-          <span class="tool-icon">✧</span>
-          <span><strong>Finance Assistant</strong><small>Get financial guidance</small></span>
-        </a>
-      </div>
+    <section class="db-tools">
+      <a class="db-tool" href="../index.html"><span class="db-tool-icon">⌂</span><span><strong>Home</strong><small>Explore the platform</small></span></a>
+      <a class="db-tool" href="expenses.html"><span class="db-tool-icon">↗</span><span><strong>Expense tracker</strong><small>Manage your spending</small></span></a>
+      <a class="db-tool" href="tax.html"><span class="db-tool-icon">₹</span><span><strong>Tax calculator</strong><small>Explore tax estimates</small></span></a>
+      <a class="db-tool" href="investments.html"><span class="db-tool-icon">◈</span><span><strong>Investment planner</strong><small>Explore investment options</small></span></a>
+      <a class="db-tool" href="schemes.html"><span class="db-tool-icon">◇</span><span><strong>Government schemes</strong><small>Discover available schemes</small></span></a>
+      <a class="db-tool" href="chatbot.html"><span class="db-tool-icon">✧</span><span><strong>Finance assistant</strong><small>Get financial guidance</small></span></a>
     </section>
 
-    <footer class="footer">
+    <footer class="db-footer">
       <span>◈ Smart Finance System</span>
       <span>Make every rupee count.</span>
     </footer>
   </main>
+</div>
 
-  <script src="../js/main.js"></script>
-  <script>
-    const $ = id => document.getElementById(id);
+<script src="../js/main.js"></script>
+<script>
+const $ = id => document.getElementById(id);
 
-    function showStatus(message, type = "") {
-      const element = $("status");
-      element.textContent = message;
-      element.className = "status" + (type ? " " + type : "");
+function showStatus(message, type = "") {
+  const el = $("status");
+  el.textContent = message;
+  el.className = "db-status" + (type ? " " + type : "");
+}
+
+function formatMoney(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "₹0.00";
+  return number.toLocaleString("en-IN", {
+    style:"currency",
+    currency:"INR",
+    minimumFractionDigits:2,
+    maximumFractionDigits:2
+  });
+}
+
+function addTextCell(row, value, className = "") {
+  const cell = document.createElement("td");
+  cell.textContent = value == null || value === "" ? "—" : String(value);
+  if (className) cell.className = className;
+  row.appendChild(cell);
+}
+
+function setBar(id, percentage) {
+  $(id).style.width = Math.max(0,Math.min(100,percentage)) + "%";
+}
+
+function updateRank(score,income,savings) {
+  let rank,description,emblem;
+
+  if (income <= 0) {
+    rank = "Starter";
+    emblem = "✦";
+    description = "Add your monthly income to begin tracking progress.";
+  } else if (savings < 0) {
+    rank = "Needs Improvement";
+    emblem = "↗";
+    description = "Spending exceeds income. Review your budget.";
+  } else if (score >= 80) {
+    rank = "Diamond";
+    emblem = "◆";
+    description = "Excellent progress. Keep building healthy habits.";
+  } else if (score >= 60) {
+    rank = "Platinum";
+    emblem = "♛";
+    description = "Strong progress. Continue saving consistently.";
+  } else if (score >= 40) {
+    rank = "Gold";
+    emblem = "★";
+    description = "Build momentum towards a stronger savings rate.";
+  } else if (score >= 20) {
+    rank = "Silver";
+    emblem = "✧";
+    description = "Keep tracking spending and setting savings goals.";
+  } else {
+    rank = "Bronze";
+    emblem = "♜";
+    description = "Start with a manageable budget and savings target.";
+  }
+
+  $("rank-name").textContent = rank;
+  $("rank-description").textContent = description;
+  $("rank-emblem").textContent = emblem;
+  setBar("rank-bar",score);
+}
+
+function renderCategories(categories,totalExpenses) {
+  const container = $("category-list");
+  container.replaceChildren();
+
+  const entries = Object.entries(categories || {})
+    .filter(([,amount]) => Number.isFinite(Number(amount)))
+    .sort((a,b) => Number(b[1])-Number(a[1]));
+
+  if (!entries.length) {
+    const empty = document.createElement("div");
+    empty.className = "db-empty";
+    const icon = document.createElement("span");
+    icon.className = "db-empty-icon";
+    icon.textContent = "◌";
+    empty.append(icon,document.createTextNode("No expenses recorded yet. Add an expense to see your spending breakdown."));
+    container.appendChild(empty);
+    return;
+  }
+
+  entries.forEach(([category,amount]) => {
+    const value = Math.max(0,Number(amount)||0);
+    const row = document.createElement("div");
+    row.className = "db-category";
+
+    const meta = document.createElement("div");
+    meta.className = "db-category-meta";
+
+    const name = document.createElement("span");
+    name.className = "db-category-name";
+    name.textContent = category;
+
+    const valueLabel = document.createElement("span");
+    valueLabel.className = "db-category-value";
+    valueLabel.textContent = formatMoney(value);
+
+    meta.append(name,valueLabel);
+
+    const track = document.createElement("div");
+    track.className = "db-category-track";
+
+    const fill = document.createElement("div");
+    fill.className = "db-category-fill";
+    fill.style.width = (totalExpenses > 0
+      ? Math.min(100,value/totalExpenses*100)
+      : 0) + "%";
+
+    track.appendChild(fill);
+    row.append(meta,track);
+    container.appendChild(row);
+  });
+}
+
+function renderExpenses(expenses) {
+  const tbody = $("recent-expenses");
+  tbody.replaceChildren();
+
+  if (!Array.isArray(expenses) || !expenses.length) {
+    const row = document.createElement("tr");
+    const cell = document.createElement("td");
+    cell.colSpan = 4;
+    cell.textContent = "No expenses recorded yet. Your transactions will appear here.";
+    row.appendChild(cell);
+    tbody.appendChild(row);
+    return;
+  }
+
+  expenses.forEach(expense => {
+    const row = document.createElement("tr");
+    addTextCell(row,expense.date);
+    addTextCell(row,expense.category);
+    addTextCell(row,expense.note);
+
+    const amount = Number(expense.amount);
+    addTextCell(
+      row,
+      formatMoney(expense.amount),
+      Number.isFinite(amount) && amount >= 0 ? "db-expense-amount" : ""
+    );
+    tbody.appendChild(row);
+  });
+}
+
+function updateInsights(income,expenses,savings) {
+  const savedRate = income > 0
+    ? Math.max(0,Math.min(100,savings/income*100))
+    : 0;
+
+  const spentRate = income > 0
+    ? Math.max(0,Math.min(100,expenses/income*100))
+    : 0;
+
+  $("savings-rate").textContent = savedRate.toFixed(1) + "%";
+  $("savings-note").textContent = savedRate.toFixed(1) + "% of income saved";
+  $("insight-saved").textContent = savedRate.toFixed(1) + "%";
+  $("insight-spent").textContent = spentRate.toFixed(1) + "%";
+
+  setBar("insight-bar",savedRate);
+  setBar("insight-spent-bar",spentRate);
+
+  if (income <= 0) {
+    $("insight-message").textContent =
+      "Add your income to understand your savings and spending ratios.";
+  } else if (savings < 0) {
+    $("insight-message").textContent =
+      "Your spending is higher than your income. Review expenses and adjust your budget.";
+  } else if (savedRate >= 30) {
+    $("insight-message").textContent =
+      "Great work! Your current savings rate is strong. Continue reviewing your goals regularly.";
+  } else if (savedRate >= 15) {
+    $("insight-message").textContent =
+      "You're building a savings habit. Consider setting a regular monthly savings target.";
+  } else {
+    $("insight-message").textContent =
+      "Try setting a realistic savings target and reviewing recurring expenses.";
+  }
+}
+
+async function loadDashboard() {
+  $("refresh-button").disabled = true;
+  showStatus("Refreshing your financial information...");
+
+  let user;
+  try {
+    user = getUser();
+  } catch (error) {
+    console.error("Unable to read login session:",error);
+  }
+
+  if (!user || !user.email) {
+    showStatus("Your login session was not found. Please log in again.","error");
+    $("refresh-button").disabled = false;
+    return;
+  }
+
+  $("greet").textContent = "Welcome, " + (user.name || "User") + "!";
+  $("user-email").textContent = user.email;
+
+  try {
+    const data = await api(
+      "/api/dashboard?email=" + encodeURIComponent(user.email)
+    );
+
+    if (!data || data.account_found === false || data.error) {
+      throw new Error(data?.error || "Your account could not be found.");
     }
 
-    function formatMoney(value) {
-      const number = Number(value);
-      if (!Number.isFinite(number)) return "₹0.00";
+    $("greet").textContent =
+      "Welcome, " + (data.name || user.name || "User") + "!";
+    $("user-email").textContent = data.email || user.email;
 
-      return number.toLocaleString("en-IN", {
-        style: "currency",
-        currency: "INR",
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      });
-    }
+    const income = Number(data.monthly_income) || 0;
+    const expenses = Number(data.monthly_expenses) || 0;
+    const savings = Number(data.monthly_savings) || 0;
 
-    function addTextCell(row, value, className = "") {
-      const cell = document.createElement("td");
-      cell.textContent = value == null || value === "" ? "—" : String(value);
-      if (className) cell.className = className;
-      row.appendChild(cell);
-    }
+    $("kpi-income").textContent = formatMoney(income);
+    $("kpi-exp").textContent = formatMoney(expenses);
+    $("kpi-save").textContent = formatMoney(savings);
+    $("kpi-tax").textContent = formatMoney(data.annual_tax_estimate);
 
-    function setBar(id, percentage) {
-      $(id).style.width =
-        Math.max(0, Math.min(100, percentage)) + "%";
-    }
+    const score = Math.max(0,Math.min(100,Number(data.financial_score)||0));
 
-    function updateRank(score, income, savings) {
-      let rank;
-      let description;
-      let emblem;
+    $("score-num").textContent = score;
+    $("score-ring").style.setProperty(
+      "--db-score-angle",
+      (score*3.6) + "deg"
+    );
+    $("score-ring").setAttribute(
+      "aria-label","Financial health score: " + score + " out of 100"
+    );
 
-      if (income <= 0) {
-        rank = "Starter";
-        emblem = "✦";
-        description = "Add your monthly income to start tracking progress.";
-      } else if (savings < 0) {
-        rank = "Needs Improvement";
-        emblem = "↗";
-        description = "Spending exceeds income. Review expenses and your budget.";
-      } else if (score >= 80) {
-        rank = "Diamond";
-        emblem = "◆";
-        description = "Excellent financial progress. Keep building good habits.";
-      } else if (score >= 60) {
-        rank = "Platinum";
-        emblem = "♛";
-        description = "Strong progress. Continue saving consistently.";
-      } else if (score >= 40) {
-        rank = "Gold";
-        emblem = "★";
-        description = "Good momentum. Work toward a stronger savings rate.";
-      } else if (score >= 20) {
-        rank = "Silver";
-        emblem = "✧";
-        description = "You're making progress. Review spending opportunities.";
-      } else {
-        rank = "Bronze";
-        emblem = "♜";
-        description = "Start with a manageable budget and a savings goal.";
-      }
+    $("score-title").textContent =
+      score >= 80 ? "Excellent progress" :
+      score >= 60 ? "Strong financial habits" :
+      score >= 40 ? "Moving in the right direction" :
+      score >= 20 ? "Room to improve" :
+      "Build your financial foundation";
 
-      $("rank-name").textContent = rank;
-      $("rank-description").textContent = description;
-      $("rank-emblem").textContent = emblem;
+    $("score-description").textContent =
+      "Your current score is " + score +
+      "/100. Track your spending and savings consistently to monitor progress.";
 
-      // This bar represents score progress, not a guaranteed promotion.
-      setBar("rank-bar", score);
-    }
+    setBar("score-bar",score);
+    updateRank(score,income,savings);
+    updateInsights(income,expenses,savings);
+    renderCategories(data.expense_by_category,expenses);
+    renderExpenses(data.recent_expenses);
 
-    function renderCategories(categories, totalExpenses) {
-      const container = $("category-list");
-      container.replaceChildren();
+    showStatus("Your financial dashboard is up to date.","success");
+  } catch (error) {
+    console.error("Dashboard loading error:",error);
+    showStatus(
+      error.message || "Unable to load your dashboard. Please try again.",
+      "error"
+    );
+  } finally {
+    $("refresh-button").disabled = false;
+  }
+}
 
-      const entries = Object.entries(categories || {})
-        .filter(([, amount]) => Number.isFinite(Number(amount)))
-        .sort((a, b) => Number(b[1]) - Number(a[1]));
+$("refresh-button").addEventListener("click",loadDashboard);
 
-      if (!entries.length) {
-        const empty = document.createElement("div");
-        empty.className = "empty-state";
-        empty.innerHTML = "<span>◌</span>No expenses recorded yet. Add an expense to see your spending breakdown.";
-        container.appendChild(empty);
-        return;
-      }
+$("logout-button").addEventListener("click",function() {
+  sessionStorage.removeItem("fp_user");
+  window.location.replace("login.html");
+});
 
-      entries.forEach(([category, amount]) => {
-        const value = Math.max(0, Number(amount) || 0);
-        const row = document.createElement("div");
-        row.className = "category-row";
-
-        const meta = document.createElement("div");
-        meta.className = "category-meta";
-
-        const name = document.createElement("span");
-        name.className = "category-name";
-        name.textContent = category;
-
-        const amountLabel = document.createElement("span");
-        amountLabel.className = "category-value";
-        amountLabel.textContent = formatMoney(value);
-
-        meta.append(name, amountLabel);
-
-        const track = document.createElement("div");
-        track.className = "category-bar";
-
-        const fill = document.createElement("div");
-        const percentage = totalExpenses > 0
-          ? Math.min(100, value / totalExpenses * 100)
-          : 0;
-
-        fill.style.width = percentage + "%";
-        track.appendChild(fill);
-        row.append(meta, track);
-        container.appendChild(row);
-      });
-    }
-
-    function renderExpenses(expenses) {
-      const tbody = $("recent-expenses");
-      tbody.replaceChildren();
-
-      if (!Array.isArray(expenses) || expenses.length === 0) {
-        const row = document.createElement("tr");
-        const cell = document.createElement("td");
-        cell.colSpan = 4;
-        cell.textContent = "No expenses recorded yet. Your recent transactions will appear here.";
-        row.appendChild(cell);
-        tbody.appendChild(row);
-        return;
-      }
-
-      expenses.forEach(expense => {
-        const row = document.createElement("tr");
-        addTextCell(row, expense.date);
-        addTextCell(row, expense.category);
-        addTextCell(row, expense.note);
-
-        const amount = Number(expense.amount);
-        addTextCell(
-          row,
-          formatMoney(expense.amount),
-          Number.isFinite(amount) && amount >= 0 ? "expense-amount" : ""
-        );
-
-        tbody.appendChild(row);
-      });
-    }
-
-    function updateInsights(income, expenses, savings) {
-      const savedRate = income > 0
-        ? Math.max(0, Math.min(100, savings / income * 100))
-        : 0;
-
-      const spentRate = income > 0
-        ? Math.max(0, Math.min(100, expenses / income * 100))
-        : 0;
-
-      $("savings-rate").textContent = savedRate.toFixed(1) + "%";
-      $("savings-note").textContent = savedRate.toFixed(1) + "% of income saved";
-
-      $("insight-saved").textContent = savedRate.toFixed(1) + "%";
-      $("insight-spent").textContent = spentRate.toFixed(1) + "%";
-
-      setBar("insight-bar", savedRate);
-      setBar("insight-spent-bar", spentRate);
-
-      if (income <= 0) {
-        $("insight-message").textContent =
-          "Add your income to understand your savings and spending ratios.";
-      } else if (savings < 0) {
-        $("insight-message").textContent =
-          "Your spending is higher than your income. Review your expenses and adjust your budget.";
-      } else if (savedRate >= 30) {
-        $("insight-message").textContent =
-          "Great work! Your current savings rate is strong. Keep an emergency fund and review your goals regularly.";
-      } else if (savedRate >= 15) {
-        $("insight-message").textContent =
-          "You're building a savings habit. Consider setting an automatic monthly savings target.";
-      } else {
-        $("insight-message").textContent =
-          "Try setting a realistic savings target and reviewing recurring expenses. Your ideal target depends on your circumstances.";
-      }
-    }
-
-    async function loadDashboard() {
-      let user;
-
-      $("refresh-button").disabled = true;
-      showStatus("Refreshing your financial information...");
-
-      try {
-        user = getUser();
-      } catch (error) {
-        console.error("Unable to read login session:", error);
-      }
-
-      if (!user || !user.email) {
-        showStatus("Your login session was not found. Please log in again.", "error");
-        $("refresh-button").disabled = false;
-        return;
-      }
-
-      $("greet").textContent = "Welcome, " + (user.name || "User") + "!";
-      $("user-email").textContent = user.email;
-
-      try {
-        const data = await api(
-          "/api/dashboard?email=" + encodeURIComponent(user.email)
-        );
-
-        if (!data || data.account_found === false || data.error) {
-          throw new Error(data?.error || "Your account could not be found.");
-        }
-
-        $("greet").textContent =
-          "Welcome, " + (data.name || user.name || "User") + "!";
-        $("user-email").textContent = data.email || user.email;
-
-        const income = Number(data.monthly_income) || 0;
-        const expenses = Number(data.monthly_expenses) || 0;
-        const savings = Number(data.monthly_savings) || 0;
-
-        $("kpi-income").textContent = formatMoney(income);
-        $("kpi-exp").textContent = formatMoney(expenses);
-        $("kpi-save").textContent = formatMoney(savings);
-        $("kpi-tax").textContent = formatMoney(data.annual_tax_estimate);
-
-        const score = Math.max(
-          0,
-          Math.min(100, Number(data.financial_score) || 0)
-        );
-
-        $("score-num").textContent = score;
-        $("score-ring").style.setProperty(
-          "--score-angle",
-          (score * 3.6) + "deg"
-        );
-        $("score-ring").setAttribute(
-          "aria-label",
-          "Financial health score: " + score + " out of 100"
-        );
-
-        setBar("score-bar", score);
-
-        $("score-title").textContent =
-          score >= 80 ? "Excellent progress" :
-          score >= 60 ? "Strong financial habits" :
-          score >= 40 ? "Moving in the right direction" :
-          score >= 20 ? "Room to improve" :
-          "Build your financial foundation";
-
-        $("score-description").textContent =
-          "Your current score is " + score +
-          "/100. Track your spending and savings consistently to monitor progress.";
-
-        updateRank(score, income, savings);
-        updateInsights(income, expenses, savings);
-        renderCategories(data.expense_by_category, expenses);
-        renderExpenses(data.recent_expenses);
-
-        showStatus("Your financial dashboard is up to date.", "success");
-      } catch (error) {
-        console.error("Dashboard loading error:", error);
-        showStatus(
-          error.message || "Unable to load your dashboard. Please try again.",
-          "error"
-        );
-      } finally {
-        $("refresh-button").disabled = false;
-      }
-    }
-
-    $("refresh-button").addEventListener("click", loadDashboard);
-
-    $("logout-button").addEventListener("click", function () {
-      sessionStorage.removeItem("fp_user");
-      window.location.replace("login.html");
-    });
-
-    loadDashboard();
-  </script>
+loadDashboard();
+</script>
 </body>
 </html>
-```
