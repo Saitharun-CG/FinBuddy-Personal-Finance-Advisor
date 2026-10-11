@@ -333,3 +333,42 @@ function renderPie(containerId, data) {
     legend.appendChild(fragment);
   }
 }
+
+/* ==========================================
+   LANDING PAGE SCROLL REVEALS
+========================================== */
+document.addEventListener("DOMContentLoaded", () => {
+  const elements = document.querySelectorAll(
+    ".features-grid, .feat-card, .stat-block, " +
+    ".how-section .step, .stats-section .stat-block"
+  );
+
+  if (!elements.length) return;
+
+  // Enable hidden-before-scroll styling only when supported.
+  document.documentElement.classList.add("js-reveal");
+
+  elements.forEach((element, index) => {
+    element.classList.add("reveal-on-scroll");
+    element.style.transitionDelay = `${(index % 4) * 90}ms`;
+  });
+
+  if (!("IntersectionObserver" in window)) {
+    elements.forEach(element => element.classList.add("is-visible"));
+    return;
+  }
+
+  const observer = new IntersectionObserver((entries, obs) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("is-visible");
+        obs.unobserve(entry.target);
+      }
+    });
+  }, {
+    threshold: 0.12,
+    rootMargin: "0px 0px -35px 0px"
+  });
+
+  elements.forEach(element => observer.observe(element));
+});
