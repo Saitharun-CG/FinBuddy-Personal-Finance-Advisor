@@ -39,29 +39,54 @@ function logout() {
   window.location.href = "../index.html";
 }
 
-/* API REQUESTS */
+/* API REQUESTS - WITH TIMEOUT AND PERFORMANCE LOGGING */
 async function api(path, method = "GET", body = null) {
   const options = {
     method,
     headers: {
       "Content-Type": "application/json"
-    }
+    },
+    signal: AbortSignal.timeout(15000)
   };
 
   if (body !== null) {
     options.body = JSON.stringify(body);
   }
 
+  const startedAt = performance.now();
   let response;
 
   try {
     response = await fetch(API_URL + path, options);
   } catch (error) {
-    console.error("Cannot connect to backend:", error);
+    const elapsed = Math.round(performance.now() - startedAt);
+
+    console.error(
+      `API request failed: ${path} (${elapsed} ms)`,
+      error
+    );
+
+    if (error.name === "TimeoutError") {
+      throw new Error(
+        "The server is taking too long to respond. Please try again."
+      );
+    }
+
+    if (error.name === "AbortError") {
+      throw new Error("The request was cancelled. Please try again.");
+    }
 
     throw new Error(
       "Cannot reach the server. Check your internet connection or try again later."
     );
+  }
+
+  const elapsed = Math.round(performance.now() - startedAt);
+
+  if (elapsed > 1000) {
+    console.warn(`Slow API request: ${path} took ${elapsed} ms`);
+  } else {
+    console.debug(`API request: ${path} took ${elapsed} ms`);
   }
 
   let result;
@@ -108,9 +133,18 @@ function pct(value) {
 const navbar = document.getElementById("navbar");
 
 if (navbar) {
+  let ticking = false;
+
   window.addEventListener("scroll", () => {
-    navbar.classList.toggle("scrolled", window.scrollY > 30);
-  });
+    if (ticking) return;
+
+    ticking = true;
+
+    requestAnimationFrame(() => {
+      navbar.classList.toggle("scrolled", window.scrollY > 30);
+      ticking = false;
+    });
+  }, { passive: true });
 }
 
 /* HAMBURGER */
@@ -246,7 +280,7 @@ function renderPie(containerId, data) {
 
   let cumulative = 0;
 
-  const stops = entries.map(([name, value], index) => {
+  const stops = entries.map(([, value], index) => {
     const start = cumulative;
     cumulative += (value / total) * 100;
 
@@ -264,6 +298,8 @@ function renderPie(containerId, data) {
 
   if (legend) {
     legend.replaceChildren();
+
+    const fragment = document.createDocumentFragment();
 
     entries.forEach(([name, value], index) => {
       const row = document.createElement("div");
@@ -291,7 +327,9 @@ function renderPie(containerId, data) {
       amount.textContent = inr(value);
 
       row.append(dot, label, amount);
-      legend.appendChild(row);
+      fragment.appendChild(row);
     });
+
+    legend.appendChild(fragment);
   }
 }
