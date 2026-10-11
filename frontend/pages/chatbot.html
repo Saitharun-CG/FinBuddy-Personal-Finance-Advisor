@@ -1,195 +1,832 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>AI Advisor – FinPilot</title>
-  <link rel="stylesheet" href="../css/style.css"/>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080b18">
+  <title>AI Financial Advisor | Smart Finance System</title>
+  <link rel="stylesheet" href="../css/style.css">
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(ellipse at 10% 0%, rgba(124,58,237,.13), transparent 38%),
+        radial-gradient(ellipse at 100% 90%, rgba(34,211,238,.08), transparent 35%),
+        #080b18;
+      color: #f4f5ff;
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+    }
+
+    .page-wrap { display: flex; min-height: 100vh; }
+
+    .sidebar {
+      width: 250px;
+      flex: 0 0 250px;
+      min-height: 100vh;
+      padding: 27px 17px;
+      display: flex;
+      flex-direction: column;
+      background: rgba(12,17,33,.96);
+      border-right: 1px solid rgba(148,163,184,.17);
+    }
+
+    .sb-brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 5px 9px 30px;
+      color: #fff;
+      font-size: 19px;
+      font-weight: 800;
+    }
+
+    .logo-icon {
+      display: grid;
+      place-items: center;
+      width: 39px;
+      height: 39px;
+      border-radius: 12px;
+      background: linear-gradient(135deg,#8b5cf6,#06b6d4);
+      color: white;
+      font-size: 23px;
+    }
+
+    .sb-nav { display: grid; gap: 7px; }
+
+    .sb-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 13px;
+      border: 1px solid transparent;
+      border-radius: 11px;
+      color: #a7b0c8;
+      text-decoration: none;
+      font-size: 13px;
+      transition: .2s;
+    }
+
+    .sb-item:hover,
+    .sb-item.active {
+      color: #fff;
+      border-color: rgba(167,139,250,.19);
+      background: linear-gradient(100deg,rgba(139,92,246,.19),rgba(34,211,238,.06));
+    }
+
+    .sb-item.active { box-shadow: inset 3px 0 #a78bfa; }
+    .sb-icon { font-size: 17px; }
+
+    .sb-user {
+      display: grid;
+      gap: 5px;
+      margin-top: auto;
+      padding: 16px 10px;
+      border-top: 1px solid rgba(148,163,184,.17);
+      color: #9ca6c0;
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .sb-user strong { color: #f4f5ff; font-size: 13px; }
+
+    .sb-logout { padding: 0 3px; }
+
+    .sb-logout button {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid #343c55;
+      border-radius: 10px;
+      background: transparent;
+      color: #c7cee0;
+      cursor: pointer;
+    }
+
+    .sb-logout button:hover { border-color: #f87171; color: #fca5a5; }
+
+    .main-content {
+      width: 100%;
+      min-width: 0;
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 34px clamp(16px,3vw,42px);
+    }
+
+    .page-header { margin-bottom: 24px; }
+
+    .page-header h1 {
+      margin: 0 0 9px;
+      color: #fff;
+      font-size: clamp(26px,3vw,35px);
+      letter-spacing: -.8px;
+    }
+
+    .page-header p {
+      margin: 0;
+      color: #9ca6c0;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .advisor-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 15px;
+      padding: 8px 12px;
+      border: 1px solid rgba(52,211,153,.2);
+      border-radius: 30px;
+      background: rgba(52,211,153,.06);
+      color: #6ee7b7;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #34d399;
+      box-shadow: 0 0 10px rgba(52,211,153,.6);
+    }
+
+    .quick-section { margin-bottom: 20px; }
+
+    .section-label {
+      margin-bottom: 12px;
+      color: #aab3ca;
+      font-size: 11px;
+      font-weight: 750;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .quick-prompts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+    }
+
+    .quick-button {
+      padding: 10px 13px;
+      border: 1px solid rgba(148,163,184,.19);
+      border-radius: 11px;
+      background: rgba(17,24,43,.8);
+      color: #cbd2e6;
+      cursor: pointer;
+      font: inherit;
+      font-size: 12px;
+      transition: .2s;
+    }
+
+    .quick-button:hover {
+      border-color: rgba(167,139,250,.5);
+      background: rgba(139,92,246,.12);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    .chat-window {
+      display: flex;
+      flex-direction: column;
+      min-height: 490px;
+      height: min(60vh, 680px);
+      overflow: hidden;
+      border: 1px solid rgba(148,163,184,.19);
+      border-radius: 19px;
+      background: rgba(15,22,40,.93);
+      box-shadow: 0 20px 60px rgba(0,0,0,.18);
+    }
+
+    .chat-topbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(148,163,184,.13);
+      background: rgba(17,24,43,.85);
+    }
+
+    .bot-avatar {
+      display: grid;
+      place-items: center;
+      width: 43px;
+      height: 43px;
+      flex-shrink: 0;
+      border-radius: 14px;
+      background: linear-gradient(135deg,#7c3aed,#0891b2);
+      font-size: 22px;
+    }
+
+    .bot-details { flex: 1; min-width: 0; }
+
+    .bot-details strong {
+      display: block;
+      margin-bottom: 5px;
+      color: #f4f5ff;
+      font-size: 13px;
+    }
+
+    .bot-details span {
+      color: #9ca6c0;
+      font-size: 11px;
+    }
+
+    .clear-button {
+      padding: 9px 12px;
+      border: 1px solid #343c55;
+      border-radius: 9px;
+      background: transparent;
+      color: #aeb8d0;
+      cursor: pointer;
+      font: inherit;
+      font-size: 11px;
+    }
+
+    .clear-button:hover { color: #fff; border-color: #64748b; }
+
+    .chat-msgs {
+      flex: 1;
+      min-height: 0;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 17px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scroll-behavior: smooth;
+    }
+
+    .msg {
+      max-width: min(80%, 650px);
+      padding: 14px 16px;
+      border: 1px solid rgba(148,163,184,.12);
+      border-radius: 15px;
+      font-size: 13px;
+      line-height: 1.8;
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+      animation: messageIn .2s ease;
+    }
+
+    .msg-bot {
+      align-self: flex-start;
+      border-top-left-radius: 5px;
+      background: #1a2339;
+      color: #dce3f5;
+    }
+
+    .msg-user {
+      align-self: flex-end;
+      border-color: rgba(167,139,250,.22);
+      border-top-right-radius: 5px;
+      background: linear-gradient(130deg,rgba(124,58,237,.27),rgba(8,145,178,.14));
+      color: #fff;
+    }
+
+    .msg strong { color: #c4b5fd; }
+
+    .msg-time {
+      display: block;
+      margin-top: 7px;
+      color: #7f8aa6;
+      font-size: 10px;
+    }
+
+    .typing-dots {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 0;
+    }
+
+    .typing-dots span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #a78bfa;
+      animation: bounce 1s infinite ease-in-out;
+    }
+
+    .typing-dots span:nth-child(2) { animation-delay: .15s; }
+    .typing-dots span:nth-child(3) { animation-delay: .3s; }
+
+    .chat-composer {
+      padding: 15px;
+      border-top: 1px solid rgba(148,163,184,.13);
+      background: rgba(11,17,32,.88);
+    }
+
+    .composer-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #chat-input {
+      width: 100%;
+      min-width: 0;
+      height: 48px;
+      padding: 0 15px;
+      border: 1px solid #303951;
+      border-radius: 12px;
+      outline: none;
+      background: #0b1223;
+      color: #f4f5ff;
+      font: inherit;
+      font-size: 13px;
+      transition: border-color .2s,box-shadow .2s;
+    }
+
+    #chat-input::placeholder { color: #77829c; }
+
+    #chat-input:focus {
+      border-color: #8b5cf6;
+      box-shadow: 0 0 0 3px rgba(139,92,246,.13);
+    }
+
+    .send-button {
+      height: 48px;
+      flex-shrink: 0;
+      padding: 0 20px;
+      border: 0;
+      border-radius: 12px;
+      background: linear-gradient(100deg,#7c3aed,#6366f1 60%,#0891b2);
+      color: #fff;
+      cursor: pointer;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 750;
+      transition: .2s;
+    }
+
+    .send-button:hover:not(:disabled) { transform: translateY(-1px); }
+    .send-button:disabled { opacity: .6; cursor: wait; }
+
+    .composer-hint {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 10px;
+      color: #7f8aa6;
+      font-size: 10px;
+      line-height: 1.6;
+    }
+
+    .disclaimer {
+      margin-top: 17px;
+      padding: 14px 16px;
+      border: 1px solid rgba(251,191,36,.15);
+      border-radius: 12px;
+      background: rgba(251,191,36,.045);
+      color: #b8b7ad;
+      font-size: 11px;
+      line-height: 1.8;
+    }
+
+    .disclaimer strong { color: #fcd34d; }
+
+    @keyframes messageIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes bounce {
+      0%,60%,100% { transform: translateY(0); opacity: .6; }
+      30% { transform: translateY(-5px); opacity: 1; }
+    }
+
+    @media (max-width: 760px) {
+      .page-wrap { display: block; }
+
+      .sidebar {
+        width: 100%;
+        min-height: auto;
+        padding: 15px;
+        border-right: 0;
+        border-bottom: 1px solid rgba(148,163,184,.17);
+      }
+
+      .sb-brand { padding: 2px 5px 15px; }
+
+      .sb-nav {
+        display: flex;
+        gap: 7px;
+        overflow-x: auto;
+        padding-bottom: 7px;
+      }
+
+      .sb-item { flex-shrink: 0; padding: 10px 12px; }
+      .sb-user { margin-top: 12px; padding: 11px 5px; }
+      .sb-logout { display: none; }
+      .main-content { padding: 23px 14px; }
+
+      .chat-window { height: 62vh; min-height: 430px; }
+      .chat-msgs { padding: 15px; }
+      .msg { max-width: 92%; }
+    }
+
+    @media (max-width: 450px) {
+      .quick-prompts { gap: 7px; }
+      .quick-button { padding: 9px 10px; font-size: 11px; }
+      .chat-window { min-height: 420px; }
+      .chat-topbar { padding: 12px; }
+      .chat-composer { padding: 11px; }
+      .send-button { padding: 0 13px; }
+      .composer-hint { font-size: 9px; }
+      .msg { max-width: 96%; padding: 12px; font-size: 12px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,*::before,*::after {
+        animation-duration: .01ms !important;
+        transition-duration: .01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
 </head>
+
 <body>
 <div class="page-wrap">
+
   <aside class="sidebar">
-    <div class="sb-brand"><span class="logo-icon">◈</span> FinPilot</div>
-    <nav class="sb-nav">
+    <div class="sb-brand">
+      <span class="logo-icon">◈</span>
+      <span>Smart Finance</span>
+    </div>
+
+    <nav class="sb-nav" aria-label="Main navigation">
       <a class="sb-item" href="dashboard.html"><span class="sb-icon">📊</span> Dashboard</a>
       <a class="sb-item" href="expenses.html"><span class="sb-icon">💳</span> Expenses</a>
       <a class="sb-item" href="tax.html"><span class="sb-icon">🧾</span> Tax Calculator</a>
       <a class="sb-item" href="investments.html"><span class="sb-icon">📈</span> Investments</a>
       <a class="sb-item" href="schemes.html"><span class="sb-icon">🏛️</span> Govt Schemes</a>
-      <a class="sb-item active" href="chatbot.html"><span class="sb-icon">🤖</span> AI Advisor</a>
+      <a class="sb-item active" href="chatbot.html" aria-current="page"><span class="sb-icon">🤖</span> AI Advisor</a>
     </nav>
-    <div class="sb-user" id="sb-user">–</div>
+
+    <div class="sb-user" id="sb-user">Loading account...</div>
+
     <div class="sb-logout">
-      <button class="btn-outline" style="width:100%;text-align:center" onclick="logout()">Logout</button>
+      <button type="button" onclick="logout()">↪ Logout</button>
     </div>
   </aside>
 
   <main class="main-content">
-    <div class="page-header">
-      <h1>🤖 AI Financial Advisor</h1>
-      <p>Ask anything about taxes, savings, investments, or government schemes</p>
-    </div>
+    <header class="page-header">
+      <h1>AI Financial Advisor</h1>
+      <p>Your friendly assistant for everyday questions about money, taxes, and savings.</p>
 
-    <!-- QUICK PROMPTS -->
-    <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1rem">
-      <button class="btn-outline" style="font-size:.8rem" onclick="sendQuick('How can I save income tax?')">💡 How to save tax?</button>
-      <button class="btn-outline" style="font-size:.8rem" onclick="sendQuick('Where should I invest ₹5000 per month?')">📈 Where to invest ₹5000?</button>
-      <button class="btn-outline" style="font-size:.8rem" onclick="sendQuick('What is the 50-30-20 budget rule?')">📊 50-30-20 rule?</button>
-      <button class="btn-outline" style="font-size:.8rem" onclick="sendQuick('Tell me about PMJJBY insurance scheme')">🏛️ About PMJJBY?</button>
-      <button class="btn-outline" style="font-size:.8rem" onclick="sendQuick('What is SIP and how does it work?')">🔁 What is SIP?</button>
-      <button class="btn-outline" style="font-size:.8rem" onclick="sendQuick('How to improve my credit score?')">💳 Credit score tips?</button>
-    </div>
+      <div class="advisor-status">
+        <span class="status-dot"></span>
+        Financial guidance assistant
+      </div>
+    </header>
 
-    <!-- CHAT WINDOW -->
-    <div class="chat-window">
-      <div class="chat-msgs" id="chat-msgs">
+    <section class="quick-section" aria-label="Suggested questions">
+      <div class="section-label">Start with a question</div>
+
+      <div class="quick-prompts">
+        <button class="quick-button" type="button" data-question="How can I save income tax in India?">🧾 Save tax</button>
+        <button class="quick-button" type="button" data-question="Explain the 50-30-20 budgeting rule.">📊 Budget rule</button>
+        <button class="quick-button" type="button" data-question="What is a SIP and how does it work?">📈 Learn about SIP</button>
+        <button class="quick-button" type="button" data-question="How much should I keep in an emergency fund?">🛟 Emergency fund</button>
+        <button class="quick-button" type="button" data-question="Tell me about PMJJBY government insurance scheme.">🏛️ Government schemes</button>
+        <button class="quick-button" type="button" data-question="How can I improve my credit score?">💳 Credit score</button>
+      </div>
+    </section>
+
+    <section class="chat-window" aria-label="Chat with financial advisor">
+      <div class="chat-topbar">
+        <div class="bot-avatar" aria-hidden="true">🤖</div>
+        <div class="bot-details">
+          <strong>Smart Finance Assistant</strong>
+          <span>Ask a question to get started</span>
+        </div>
+        <button class="clear-button" id="clear-button" type="button">↻ Clear chat</button>
+      </div>
+
+      <div class="chat-msgs" id="chat-msgs" role="log" aria-live="polite" aria-relevant="additions">
         <div class="msg msg-bot">
-          👋 Hi! I'm <strong>FinPilot AI</strong>, your digital Chartered Accountant.<br/><br/>
-          Ask me anything about <em>income tax, investments, savings strategies, budgeting,</em> or <em>government schemes</em>. I'm here to help!
+          <strong>Welcome to Smart Finance!</strong>
+
+          Hi there 👋 I'm your financial information assistant.
+
+          You can ask me about:
+          • Income tax and deductions
+          • Budgeting and expense tracking
+          • Savings and emergency funds
+          • Mutual funds and SIP basics
+          • Government schemes and loans
+
+          What would you like to learn about today?
         </div>
       </div>
-      <div class="chat-input-row">
-        <input type="text" id="chat-input" placeholder="e.g. How do I save tax under Section 80C?" onkeydown="if(event.key==='Enter') sendMsg()"/>
-        <button class="btn-primary" onclick="sendMsg()">Send →</button>
-        <button class="btn-outline" onclick="clearChat()">Clear</button>
-      </div>
-    </div>
 
-    <!-- DISCLAIMER -->
-    <p style="color:var(--muted);font-size:.76rem;margin-top:.8rem">
-      ⚠️ FinPilot AI provides general financial information. It is not a SEBI-registered advisor.
-      For large investments or complex tax matters, consult a Chartered Accountant.
-    </p>
+      <form class="chat-composer" id="chat-form">
+        <div class="composer-row">
+          <input
+            id="chat-input"
+            type="text"
+            maxlength="1000"
+            placeholder="Ask a question about your finances..."
+            autocomplete="off"
+            aria-label="Your message"
+            required
+          >
+          <button class="send-button" id="send-button" type="submit">Send →</button>
+        </div>
+
+        <div class="composer-hint">
+          <span>Enter to send · Keep personal account details private</span>
+          <span id="char-count">0/1000</span>
+        </div>
+      </form>
+    </section>
+
+    <div class="disclaimer">
+      <strong>Important financial notice</strong><br>
+      This assistant provides general educational information, not personalized professional
+      financial, tax, legal, or investment advice. Tax rules and government scheme details can
+      change. Verify current eligibility and rates with official sources before acting.
+      Investments can lose value; consider a qualified professional for decisions specific to you.
+    </div>
   </main>
 </div>
 
 <script src="../js/main.js"></script>
+
 <script>
-const user = getUser();
-if (user) document.getElementById('sb-user').innerHTML = `<strong>${user.name}</strong>${user.email}`;
+  const user = getUser();
 
-// ── RULE-BASED RESPONSES (works offline) ────────────────────────
-const KB = {
-  tax: [
-    "Under <strong>Section 80C</strong>, you can invest up to ₹1,50,000 in PPF, ELSS mutual funds, NSC, LIC premium, or EPF to reduce taxable income.",
-    "Compare Old vs New regime using our <a href='tax.html' style='color:var(--accent)'>Tax Calculator</a>. Old regime is better if deductions exceed ₹3.75L.",
-    "Section <strong>80D</strong> allows deduction for health insurance premiums — up to ₹25,000 for self and ₹50,000 for senior citizen parents.",
-    "NPS (National Pension System) gives an <strong>extra ₹50,000</strong> deduction under 80CCD(1B) beyond the 80C limit.",
-    "Home loan interest is deductible up to <strong>₹2 lakh/year</strong> under Section 24 of the Income Tax Act."
-  ],
-  invest: [
-    "For beginners: Start a <strong>SIP of ₹500-₹1000/month</strong> in an index fund. Time in market beats timing the market!",
-    "The rule of 72: Divide 72 by your return rate to know how many years to double money. At 12%, money doubles in 6 years.",
-    "<strong>SIP ₹3,000/month</strong> for 15 years at 12% return = ~₹20 lakhs. Compound interest is magic.",
-    "For safe returns: <strong>PPF at 7.1%</strong> (tax-free), <strong>FD at 7%</strong>, <strong>SCSS at 8.2%</strong> for seniors.",
-    "ELSS mutual funds: Tax-saving (80C) + equity growth + only 3-year lock-in. Best of all worlds!"
-  ],
-  budget: [
-    "Follow the <strong>50-30-20 rule</strong>: 50% on needs (rent, food), 30% on wants (entertainment), 20% on savings & investments.",
-    "Track expenses daily. Use our <a href='expenses.html' style='color:var(--accent)'>Expense Tracker</a> to find where money leaks.",
-    "Pay yourself first — on salary day, immediately transfer 20% to savings before spending.",
-    "Reduce food delivery apps (Zomato/Swiggy) from 8x to 2x/month and save ₹3,000–₹5,000 monthly.",
-    "Automate your SIP so you never skip an investment because of impulsive spending."
-  ],
-  sip: [
-    "SIP (Systematic Investment Plan) means investing a fixed amount monthly in a mutual fund — as low as ₹100/month.",
-    "Benefits of SIP: Rupee cost averaging, no need to time the market, discipline in saving, compound growth over years.",
-    "Best SIP funds for beginners: Nifty 50 Index Fund, Parag Parikh Flexi Cap, Mirae Asset Large Cap.",
-    "₹2,000/month SIP for 20 years at 12% = ₹19.8 lakhs invested, grows to <strong>₹1.98 crore</strong>. That's the power of compounding!"
-  ],
-  saving: [
-    "Build an <strong>emergency fund</strong> of 3-6 months of expenses before any investment. Keep it in a liquid fund or savings account.",
-    "Save first, spend later — not the other way around. Automate transfers on salary day.",
-    "Cancel subscriptions you haven't used in 30 days. Most people waste ₹500–₹2000/month on unused apps.",
-    "Review insurance policies — term insurance is cheapest, don't mix insurance with investment (avoid endowment plans)."
-  ],
-  scheme: [
-    "<strong>PMJJBY</strong>: ₹2 lakh life cover for just ₹436/year — the most affordable life insurance in India.",
-    "<strong>Sukanya Samriddhi</strong>: 8.2% tax-free interest for girl child below 10. Best way to plan for daughter's future.",
-    "<strong>Atal Pension Yojana</strong>: Guaranteed pension of ₹1,000–₹5,000/month from age 60. Enroll before age 40!",
-    "<strong>PM Awas Yojana</strong>: Interest subsidy on home loan if annual income < ₹18 lakh and you don't own a house.",
-    "<strong>NPS</strong>: Extra ₹50,000 tax deduction + pension + partial tax-free withdrawal at retirement."
-  ],
-  loan: [
-    "A <strong>CIBIL score above 750</strong> gets you best loan interest rates. Pay EMIs on time every month.",
-    "Never take personal loans for consumption (phone, vacation). Only use for genuine emergencies or education.",
-    "Prepay loans whenever you have extra money — saved interest = guaranteed return better than FD.",
-    "Compare loan rates on BankBazaar or Paisabazaar before taking any loan — rates can vary by 3-5%."
-  ],
-  default: [
-    "I can help you with: tax saving, investment planning, budgeting, SIP, government schemes, and loan tips. What would you like to know?",
-    "Great question! Try asking about specific topics like <em>'How to save tax'</em>, <em>'Where to invest ₹3000'</em>, or <em>'About SIP'</em>."
-  ]
-};
+  const userBox = document.getElementById("sb-user");
+  userBox.replaceChildren();
 
-function getBotReply(msg) {
-  msg = msg.toLowerCase();
-  if (/tax|80c|80d|itr|regime|deduct|tds/.test(msg))    return rand(KB.tax);
-  if (/sip|systematic/.test(msg))                         return rand(KB.sip);
-  if (/invest|mutual|fund|elss|ppf|nps|fd|stock|equity/.test(msg)) return rand(KB.invest);
-  if (/budget|expense|spend|track|zero-based/.test(msg)) return rand(KB.budget);
-  if (/save|saving|emergency/.test(msg))                 return rand(KB.saving);
-  if (/scheme|government|pmjjby|sukanya|atal|awas|jan dhan|mudra/.test(msg)) return rand(KB.scheme);
-  if (/loan|emi|cibil|credit score|borrow/.test(msg))   return rand(KB.loan);
-  return rand(KB.default);
-}
+  const name = document.createElement("strong");
+  name.textContent = user?.name || "Your account";
 
-function rand(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
+  const email = document.createElement("span");
+  email.textContent = user?.email || "Not signed in";
 
-function appendMsg(text, role) {
-  const div = document.createElement('div');
-  div.className = `msg msg-${role}`;
-  div.innerHTML = text;
-  document.getElementById('chat-msgs').appendChild(div);
-  document.getElementById('chat-msgs').scrollTop = 9999;
-}
+  userBox.append(name, email);
 
-function typingIndicator(show) {
-  const id = 'typing-indicator';
-  if (show) {
-    const d = document.createElement('div');
-    d.id = id; d.className = 'msg msg-bot';
-    d.innerHTML = '<em style="color:var(--muted)">FinPilot AI is typing…</em>';
-    document.getElementById('chat-msgs').appendChild(d);
-    document.getElementById('chat-msgs').scrollTop = 9999;
-  } else {
-    document.getElementById(id)?.remove();
+  const chatMessages = document.getElementById("chat-msgs");
+  const chatForm = document.getElementById("chat-form");
+  const chatInput = document.getElementById("chat-input");
+  const sendButton = document.getElementById("send-button");
+  const charCount = document.getElementById("char-count");
+
+  let isSending = false;
+  let typingElement = null;
+
+  // Simple offline knowledge base.
+  // Financial facts and rates should be verified before users act on them.
+  const KB = {
+    tax: [
+      "India's income tax rules depend on the financial year, your income, and the tax regime you choose. Compare the old and new regimes using the Tax Calculator page. Check current Income Tax Department guidance before making a tax decision.",
+      "Section 80C deductions may be available under the old tax regime for eligible investments and payments, subject to the applicable rules and limits. Many deductions available under the old regime are not available under the new regime.",
+      "Eligible health insurance premiums may qualify for Section 80D deductions under applicable conditions. Limits depend on the insured person's age and the type of coverage. Confirm the current rules for your financial year.",
+      "To plan taxes, first estimate your annual income, identify eligible deductions, and compare both tax regimes using the rules for the correct financial year. A Chartered Accountant can help with complex cases."
+    ],
+
+    invest: [
+      "Start by identifying your goal, time horizon, and ability to tolerate losses. Emergency savings and essential insurance generally deserve attention before taking investment risk.",
+      "Mutual funds carry different levels of risk. Index funds track a market index, while other funds use different investment strategies. Review fees, risk, and investment horizon before choosing a fund.",
+      "Diversification means spreading investments across different assets rather than relying on one investment. It can help manage concentration risk, but it does not eliminate the possibility of losses.",
+      "There is no guaranteed return from equity investments. Avoid choosing a fund only because of its past performance, and do not invest money you may need in the short term without considering the risks."
+    ],
+
+    sip: [
+      "SIP stands for Systematic Investment Plan. It lets you invest a chosen amount into a mutual fund at regular intervals. The investment value can rise or fall with the market.",
+      "A SIP can encourage regular investing and spread purchases over time. However, it does not guarantee profit or protect you against market losses.",
+      "Before starting a SIP, set a goal, build an emergency fund, understand the fund's risk level, and review its expense ratio and investment strategy."
+    ],
+
+    budget: [
+      "The 50-30-20 rule is a budgeting guideline: roughly 50% of take-home income for needs, 30% for wants, and 20% for savings and debt repayment. Adjust the proportions to fit your circumstances.",
+      "Track spending for a month and group it into categories such as housing, food, transport, subscriptions, and entertainment. Small recurring costs can add up over time.",
+      "Try paying yourself first: set an achievable savings target and move that amount to savings after receiving income, while keeping enough for essential bills.",
+      "You can use the Expense Tracker page to record spending and identify categories where you might reduce costs."
+    ],
+
+    saving: [
+      "A common starting target for an emergency fund is three to six months of essential expenses. Your ideal amount depends on job stability, dependants, and other obligations.",
+      "Keep emergency money accessible and consider the safety and liquidity of the account or product you choose. Avoid putting all emergency savings into volatile investments.",
+      "Set a specific savings goal, automate a manageable transfer when income arrives, and review your progress each month."
+    ],
+
+    scheme: [
+      "India has government-backed savings, insurance, pension, and welfare schemes for different groups. Eligibility may depend on age, income, occupation, and other criteria.",
+      "Pradhan Mantri Jeevan Jyoti Bima Yojana (PMJJBY) is a life insurance scheme. Premiums, coverage, and eligibility can change, so verify the current details with an official government or participating bank source.",
+      "Atal Pension Yojana is a pension scheme with eligibility conditions. Check the current age rules, contribution requirements, and official scheme information before enrolling.",
+      "For government schemes, use official government portals or your participating bank to verify eligibility, current rates, required documents, and application deadlines."
+    ],
+
+    loan: [
+      "Paying EMIs on time, keeping credit utilisation manageable, and checking your credit report for errors can help support a healthy credit profile. A credit score alone does not guarantee loan approval.",
+      "Compare the annual interest rate, processing fees, prepayment rules, and total repayment cost before accepting a loan.",
+      "Before borrowing, check whether the EMI fits comfortably within your budget even if your expenses increase or income falls."
+    ],
+
+    default: [
+      "I can help explain taxes, budgeting, saving, SIPs, mutual funds, government schemes, and loans. Try asking one specific question to get started.",
+      "Tell me what you want to understand—for example, how to build an emergency fund, how SIPs work, or how to compare tax regimes."
+    ]
+  };
+
+  function chooseRandom(items) {
+    return items[Math.floor(Math.random() * items.length)];
   }
-}
 
-async function sendMsg() {
-  const input = document.getElementById('chat-input');
-  const msg = input.value.trim();
-  if (!msg) return;
-  input.value = '';
-  appendMsg(msg, 'user');
-  typingIndicator(true);
+  function getBotReply(message) {
+    const text = message.toLowerCase();
 
-  let reply;
-  // Try backend
-  try {
-    const r = await api('/chat','POST',{message:msg});
-    reply = r.reply;
-  } catch(e) {
-    reply = getBotReply(msg);
+    if (/tax|80c|80d|itr|income tax|tax regime|deduction|tds/.test(text)) {
+      return chooseRandom(KB.tax);
+    }
+
+    if (/sip|systematic investment/.test(text)) {
+      return chooseRandom(KB.sip);
+    }
+
+    if (/invest|mutual fund|elss|ppf|nps|stock|equity|fd\b/.test(text)) {
+      return chooseRandom(KB.invest);
+    }
+
+    if (/budget|expense|spend|50.?30.?20|track spending/.test(text)) {
+      return chooseRandom(KB.budget);
+    }
+
+    if (/save|saving|emergency fund/.test(text)) {
+      return chooseRandom(KB.saving);
+    }
+
+    if (/scheme|government|pmjjby|sukanya|atal pension|awas|jan dhan|mudra/.test(text)) {
+      return chooseRandom(KB.scheme);
+    }
+
+    if (/loan|emi|cibil|credit score|borrow/.test(text)) {
+      return chooseRandom(KB.loan);
+    }
+
+    return chooseRandom(KB.default);
   }
-  if (!reply) reply = getBotReply(msg);
 
-  setTimeout(() => { typingIndicator(false); appendMsg(reply, 'bot'); }, 700);
-}
+  function scrollToLatest() {
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
 
-function sendQuick(msg) {
-  document.getElementById('chat-input').value = msg;
-  sendMsg();
-}
+  // Render all messages as text, never as user-provided HTML.
+  function appendMessage(text, role) {
+    const message = document.createElement("div");
+    message.className = role === "user" ? "msg msg-user" : "msg msg-bot";
+    message.textContent = String(text ?? "");
+    chatMessages.appendChild(message);
+    scrollToLatest();
+  }
 
-function clearChat() {
-  document.getElementById('chat-msgs').innerHTML = `
-    <div class="msg msg-bot">
-      👋 Hi! I'm <strong>FinPilot AI</strong>, your digital Chartered Accountant.<br/><br/>
-      Ask me anything about <em>income tax, investments, savings strategies, budgeting,</em> or <em>government schemes</em>.
-    </div>`;
-}
+  function showTyping() {
+    removeTyping();
+
+    typingElement = document.createElement("div");
+    typingElement.className = "msg msg-bot";
+    typingElement.id = "typing-indicator";
+    typingElement.setAttribute("aria-label", "Assistant is preparing a response");
+
+    const label = document.createElement("span");
+    label.textContent = "Preparing a response ";
+
+    const dots = document.createElement("span");
+    dots.className = "typing-dots";
+
+    for (let i = 0; i < 3; i++) {
+      dots.appendChild(document.createElement("span"));
+    }
+
+    typingElement.append(label, dots);
+    chatMessages.appendChild(typingElement);
+    scrollToLatest();
+  }
+
+  function removeTyping() {
+    typingElement?.remove();
+    typingElement = null;
+  }
+
+  function updateCharacterCount() {
+    charCount.textContent = chatInput.value.length + "/1000";
+  }
+
+  chatInput.addEventListener("input", updateCharacterCount);
+
+  async function sendMsg(messageOverride) {
+    if (isSending) return;
+
+    const message = String(messageOverride ?? chatInput.value).trim();
+
+    if (!message) {
+      chatInput.focus();
+      return;
+    }
+
+    if (message.length > 1000) {
+      appendMessage("Please keep your question under 1,000 characters.", "bot");
+      return;
+    }
+
+    isSending = true;
+    sendButton.disabled = true;
+    sendButton.textContent = "Sending...";
+    chatInput.disabled = true;
+
+    appendMessage(message, "user");
+
+    chatInput.value = "";
+    updateCharacterCount();
+
+    showTyping();
+
+    try {
+      let reply = "";
+
+      try {
+        const response = await api("/chat", "POST", {
+          message: message
+        });
+
+        if (typeof response === "string") {
+          reply = response;
+        } else if (response && typeof response.reply === "string") {
+          reply = response.reply;
+        } else if (response && typeof response.message === "string") {
+          reply = response.message;
+        }
+
+        if (response?.error) {
+          throw new Error(response.error);
+        }
+      } catch (error) {
+        console.warn("Chat API unavailable; using the offline knowledge base.", error);
+        reply = getBotReply(message);
+      }
+
+      if (!reply.trim()) {
+        reply = getBotReply(message);
+      }
+
+      // Keep the typing indicator visible briefly for a natural interaction.
+      await new Promise(resolve => setTimeout(resolve, 450));
+
+      removeTyping();
+      appendMessage(reply, "bot");
+    } catch (error) {
+      console.error("Chat response error:", error);
+      removeTyping();
+      appendMessage(
+        "Sorry, I could not prepare a response. Please try again.",
+        "bot"
+      );
+    } finally {
+      removeTyping();
+      isSending = false;
+      sendButton.disabled = false;
+      sendButton.textContent = "Send →";
+      chatInput.disabled = false;
+      chatInput.focus();
+    }
+  }
+
+  chatForm.addEventListener("submit", event => {
+    event.preventDefault();
+    sendMsg();
+  });
+
+  document.querySelectorAll("[data-question]").forEach(button => {
+    button.addEventListener("click", () => {
+      sendMsg(button.dataset.question);
+    });
+  });
+
+  document.getElementById("clear-button").addEventListener("click", () => {
+    if (isSending) return;
+
+    chatMessages.replaceChildren();
+
+    appendMessage(
+      "Welcome back to Smart Finance! 👋\n\n" +
+      "Ask me about income tax, budgeting, savings, SIPs, investments, " +
+      "government schemes, or loans.\n\nWhat would you like to learn about?",
+      "bot"
+    );
+
+    chatInput.focus();
+  });
+
+  updateCharacterCount();
 </script>
 </body>
 </html>

@@ -1,178 +1,910 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>FinPilot – Your Digital CA</title>
-  <link rel="stylesheet" href="css/style.css"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#080a12">
+  <meta name="description" content="Smart Finance System helps you track expenses, plan taxes, build savings and make smarter financial decisions.">
+  <title>Smart Finance System — Your Money, Smarter</title>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+
+  <style>
+    :root {
+      --ink: #f5f5ff;
+      --muted: #a3abc2;
+      --purple: #a78bfa;
+      --cyan: #67e8f9;
+      --green: #5ce8b8;
+      --line: rgba(195, 202, 235, .13);
+      --glass: rgba(20, 26, 47, .76);
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: 85px;
+    }
+
+    body.home-page {
+      margin: 0;
+      color: var(--ink);
+      background: #080a12;
+      font-family: "DM Sans", sans-serif;
+      overflow-x: hidden;
+    }
+
+    .home-page h1,
+    .home-page h2,
+    .home-page h3 {
+      font-family: "Syne", sans-serif;
+      color: var(--ink);
+    }
+
+    .home-page a { text-decoration: none; }
+
+    .site-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      z-index: 100;
+      padding: 17px 5.5%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      border-bottom: 1px solid transparent;
+      transition: background .25s, border-color .25s;
+    }
+
+    .site-nav.scrolled {
+      background: rgba(8, 10, 18, .91);
+      border-color: var(--line);
+      backdrop-filter: blur(18px);
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 11px;
+      color: white;
+      font: 800 1.05rem "Syne", sans-serif;
+      letter-spacing: -.04em;
+      white-space: nowrap;
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 39px;
+      height: 39px;
+      border: 1px solid rgba(196,181,253,.4);
+      border-radius: 13px;
+      color: white;
+      background: linear-gradient(135deg, #8b5cf6, #4f46e5);
+      box-shadow: 0 0 25px rgba(139,92,246,.23);
+      font-size: 1.2rem;
+    }
+
+    .brand span:last-child em {
+      color: var(--purple);
+      font-style: normal;
+    }
+
+    .nav-menu {
+      display: flex;
+      align-items: center;
+      gap: 30px;
+    }
+
+    .nav-menu > a:not(.nav-cta) {
+      color: #bdc4d8;
+      font-size: .9rem;
+      transition: color .2s;
+    }
+
+    .nav-menu > a:not(.nav-cta):hover { color: white; }
+
+    .nav-cta,
+    .button-primary,
+    .button-secondary {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      gap: 9px;
+      min-height: 47px;
+      padding: 0 20px;
+      border-radius: 13px;
+      font-weight: 700;
+      font-size: .91rem;
+      transition: transform .22s, box-shadow .22s, border-color .22s;
+    }
+
+    .nav-cta,
+    .button-primary {
+      color: white;
+      background: linear-gradient(110deg, #8b5cf6, #6254e8);
+      border: 1px solid rgba(196,181,253,.35);
+      box-shadow: 0 8px 28px rgba(99,70,220,.22);
+    }
+
+    .button-secondary {
+      color: #f4f2ff;
+      background: rgba(255,255,255,.035);
+      border: 1px solid var(--line);
+    }
+
+    .nav-cta:hover,
+    .button-primary:hover,
+    .button-secondary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 32px rgba(99,70,220,.27);
+    }
+
+    .menu-toggle {
+      display: none;
+      width: 43px;
+      height: 43px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #15182a;
+      color: white;
+      font-size: 1.3rem;
+      cursor: pointer;
+    }
+
+    /* Hero */
+
+    .hero-new {
+      position: relative;
+      min-height: 760px;
+      padding: 150px 6% 100px;
+      display: grid;
+      grid-template-columns: 1.02fr .98fr;
+      align-items: center;
+      gap: 45px;
+      isolation: isolate;
+      overflow: hidden;
+    }
+
+    .hero-new::before {
+      content: "";
+      position: absolute;
+      z-index: -2;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 15% 25%, rgba(124,58,237,.21), transparent 39%),
+        radial-gradient(ellipse at 85% 48%, rgba(8,145,178,.12), transparent 34%),
+        linear-gradient(180deg, #080a12, #0a0d19 85%, #080a12);
+    }
+
+    .hero-grid {
+      position: absolute;
+      z-index: -1;
+      inset: 0;
+      opacity: .17;
+      background-image:
+        linear-gradient(rgba(167,139,250,.11) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(167,139,250,.11) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: linear-gradient(to bottom, black, transparent 88%);
+    }
+
+    .glow-orb {
+      position: absolute;
+      z-index: -1;
+      width: 330px;
+      height: 330px;
+      border-radius: 50%;
+      filter: blur(90px);
+      pointer-events: none;
+      animation: drift 12s ease-in-out infinite alternate;
+    }
+
+    .glow-orb.one {
+      top: 12%;
+      left: -180px;
+      background: rgba(124,58,237,.28);
+    }
+
+    .glow-orb.two {
+      right: -190px;
+      top: 35%;
+      background: rgba(6,182,212,.2);
+      animation-delay: -4s;
+    }
+
+    @keyframes drift {
+      from { transform: translate(0, 0) scale(.9); }
+      to { transform: translate(60px, 35px) scale(1.15); }
+    }
+
+    .hero-copy {
+      max-width: 640px;
+      animation: enterLeft .8s ease both;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 9px 13px;
+      border: 1px solid rgba(167,139,250,.28);
+      border-radius: 999px;
+      color: #d6c7ff;
+      background: rgba(139,92,246,.09);
+      font-size: .78rem;
+      font-weight: 700;
+      letter-spacing: .035em;
+    }
+
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #5ce8b8;
+      box-shadow: 0 0 12px #5ce8b8;
+      animation: pulse 1.8s infinite;
+    }
+
+    @keyframes pulse {
+      50% { opacity: .45; box-shadow: 0 0 3px #5ce8b8; }
+    }
+
+    .hero-copy h1 {
+      margin: 26px 0 20px;
+      font-size: clamp(3.2rem, 5.8vw, 5.65rem);
+      font-weight: 800;
+      line-height: 1.01;
+      letter-spacing: -.075em;
+    }
+
+    .hero-gradient {
+      display: inline-block;
+      color: var(--purple);
+      background: linear-gradient(100deg, #c4b5fd, #8da5ff, #67e8f9, #c4b5fd);
+      background-size: 250% auto;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradientMove 6s linear infinite;
+    }
+
+    @keyframes gradientMove {
+      to { background-position: 250% center; }
+    }
+
+    .hero-description {
+      max-width: 535px;
+      margin: 0 0 29px;
+      color: var(--muted);
+      font-size: 1.06rem;
+      line-height: 1.9;
+    }
+
+    .hero-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 13px;
+    }
+
+    .hero-trust {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 19px;
+      margin-top: 27px;
+      color: #a9b2c9;
+      font-size: .8rem;
+    }
+
+    .hero-trust span { display: flex; align-items: center; gap: 7px; }
+    .check { color: var(--green); font-weight: 800; }
+
+    /* Dashboard visual */
+
+    .hero-art {
+      position: relative;
+      min-height: 470px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: enterRight 1s .1s ease both;
+    }
+
+    .art-glow {
+      position: absolute;
+      width: 360px;
+      height: 360px;
+      border-radius: 50%;
+      background: rgba(109,75,230,.15);
+      filter: blur(70px);
+    }
+
+    .finance-window {
+      position: relative;
+      z-index: 2;
+      width: min(100%, 450px);
+      padding: 24px;
+      border: 1px solid rgba(186,192,235,.2);
+      border-radius: 25px;
+      background: linear-gradient(145deg, rgba(28,35,59,.96), rgba(13,18,33,.97));
+      box-shadow: 0 35px 100px rgba(0,0,0,.45), inset 0 1px rgba(255,255,255,.06);
+      backdrop-filter: blur(18px);
+      animation: dashboardFloat 6s ease-in-out infinite;
+    }
+
+    @keyframes dashboardFloat {
+      0%,100% { transform: translateY(0) rotate(0); }
+      50% { transform: translateY(-9px) rotate(.25deg); }
+    }
+
+    .window-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding-bottom: 19px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .window-title { color: white; font-weight: 700; font-size: .9rem; }
+    .window-subtitle { margin-top: 4px; color: #8995b1; font-size: .72rem; }
+    .window-dots { display: flex; gap: 5px; }
+    .window-dots i { width: 7px; height: 7px; border-radius: 50%; background: #535c79; }
+
+    .balance-label { margin-top: 24px; color: #9ba7c2; font-size: .79rem; }
+    .balance-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 7px; }
+    .balance-amount { color: white; font: 800 clamp(1.7rem, 3vw, 2.25rem) "Syne", sans-serif; letter-spacing: -.06em; }
+
+    .gain-pill {
+      padding: 6px 9px;
+      border-radius: 8px;
+      color: #72f0c1;
+      background: rgba(16,185,129,.12);
+      font-size: .72rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .chart-box {
+      height: 150px;
+      margin-top: 22px;
+      padding: 8px 0;
+    }
+
+    .chart-box svg { width: 100%; height: 100%; overflow: visible; }
+    .chart-line {
+      stroke-dasharray: 650;
+      stroke-dashoffset: 650;
+      animation: drawChart 2.2s .5s ease forwards;
+    }
+
+    @keyframes drawChart { to { stroke-dashoffset: 0; } }
+
+    .window-bottom {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .mini-stat {
+      padding: 12px 10px;
+      border: 1px solid rgba(186,192,235,.1);
+      border-radius: 13px;
+      background: rgba(255,255,255,.025);
+    }
+
+    .mini-stat span { display: block; color: #939fba; font-size: .68rem; }
+    .mini-stat strong { display: block; margin-top: 6px; color: #f5f5ff; font-size: .92rem; }
+
+    .float-chip {
+      position: absolute;
+      z-index: 3;
+      padding: 15px 17px;
+      border: 1px solid rgba(186,192,235,.2);
+      border-radius: 17px;
+      background: rgba(21,27,47,.95);
+      box-shadow: 0 18px 45px rgba(0,0,0,.3);
+      backdrop-filter: blur(12px);
+      animation: chipFloat 5s ease-in-out infinite;
+    }
+
+    .float-chip small { display: block; color: #9ca8c2; font-size: .7rem; }
+    .float-chip strong { display: block; margin-top: 5px; color: white; font: 700 1rem "Syne", sans-serif; }
+    .chip-icon { display: inline-grid; place-items: center; width: 29px; height: 29px; margin-bottom: 8px; border-radius: 10px; background: rgba(139,92,246,.2); }
+    .chip-left { left: -15px; top: 65px; }
+    .chip-right { right: -10px; bottom: 48px; animation-delay: -2.4s; }
+    .chip-right strong { color: var(--green); }
+
+    @keyframes chipFloat {
+      0%,100% { transform: translateY(0); }
+      50% { transform: translateY(-12px); }
+    }
+
+    @keyframes enterLeft {
+      from { opacity: 0; transform: translateX(-25px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes enterRight {
+      from { opacity: 0; transform: translateX(25px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    /* Trust bar */
+
+    .trust-strip {
+      padding: 25px 6%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 18px 40px;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      background: #0b0e19;
+    }
+
+    .trust-strip p { margin: 0; color: #9aa5bd; font-size: .82rem; }
+    .trust-item { display: flex; align-items: center; gap: 9px; color: #d6dced; font-size: .85rem; font-weight: 600; }
+    .trust-icon { color: var(--purple); font-size: 1.15rem; }
+
+    /* Sections */
+
+    .section-new {
+      padding: 100px 6%;
+      position: relative;
+    }
+
+    .section-heading {
+      max-width: 690px;
+      margin: 0 auto 48px;
+      text-align: center;
+    }
+
+    .section-kicker {
+      color: #b9a5ff;
+      font-size: .76rem;
+      letter-spacing: .17em;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .section-heading h2 {
+      margin: 15px 0;
+      font-size: clamp(2.15rem, 4vw, 3.45rem);
+      line-height: 1.1;
+      letter-spacing: -.06em;
+    }
+
+    .section-heading p { margin: 0; color: var(--muted); line-height: 1.85; }
+
+    .feature-grid-new {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+      max-width: 1200px;
+      margin: auto;
+    }
+
+    .feature-new {
+      position: relative;
+      padding: 28px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 21px;
+      background: linear-gradient(145deg, rgba(23,30,51,.86), rgba(13,17,31,.92));
+      transition: transform .28s, border-color .28s, box-shadow .28s;
+    }
+
+    .feature-new::after {
+      content: "";
+      position: absolute;
+      top: -75px;
+      right: -75px;
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      background: rgba(139,92,246,.09);
+      filter: blur(30px);
+      transition: background .3s;
+    }
+
+    .feature-new:hover {
+      transform: translateY(-7px);
+      border-color: rgba(167,139,250,.45);
+      box-shadow: 0 22px 55px rgba(0,0,0,.2);
+    }
+
+    .feature-icon-new {
+      display: grid;
+      place-items: center;
+      width: 54px;
+      height: 54px;
+      margin-bottom: 24px;
+      border: 1px solid rgba(167,139,250,.22);
+      border-radius: 16px;
+      background: linear-gradient(145deg, rgba(139,92,246,.23), rgba(59,130,246,.08));
+      font-size: 1.45rem;
+    }
+
+    .feature-new h3 { margin: 0 0 11px; font-size: 1.12rem; }
+    .feature-new p { margin: 0; color: var(--muted); font-size: .91rem; line-height: 1.8; }
+
+    /* How it works */
+
+    .how-new { background: linear-gradient(180deg, #0a0d18, #0e1120, #0a0d18); }
+    .steps-new { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; max-width: 1080px; margin: auto; }
+    .step-new { position: relative; padding: 30px; border: 1px solid var(--line); border-radius: 20px; background: rgba(255,255,255,.025); }
+    .step-number { color: #bba7ff; font: 800 2.3rem "Syne", sans-serif; }
+    .step-new h3 { margin: 15px 0 9px; font-size: 1.13rem; }
+    .step-new p { margin: 0; color: var(--muted); font-size: .9rem; line-height: 1.8; }
+
+    /* Final CTA and footer */
+
+    .cta-new {
+      margin: 0 6% 85px;
+      padding: 58px 28px;
+      text-align: center;
+      border: 1px solid rgba(167,139,250,.23);
+      border-radius: 28px;
+      background:
+        radial-gradient(ellipse at 50% 0%, rgba(124,58,237,.24), transparent 65%),
+        linear-gradient(145deg, #14182a, #0d1120);
+    }
+
+    .cta-new h2 { margin: 0 0 15px; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.06em; }
+    .cta-new p { max-width: 590px; margin: 0 auto 25px; color: var(--muted); line-height: 1.8; }
+    .footer-new { padding: 32px 6%; display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; border-top: 1px solid var(--line); color: #939db4; font-size: .82rem; }
+    .footer-new a { color: #c9baff; }
+    .footer-links-new { display: flex; gap: 20px; flex-wrap: wrap; }
+
+    /* Reveal on scroll */
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity .7s ease, transform .7s ease;
+    }
+
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    @media (max-width: 1050px) {
+      .hero-new { grid-template-columns: 1fr 1fr; gap: 25px; padding-left: 5%; padding-right: 5%; }
+      .hero-copy h1 { font-size: clamp(3rem, 6vw, 4.5rem); }
+      .chip-left { left: -7px; }
+      .chip-right { right: -5px; }
+      .feature-grid-new { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    }
+
+    @media (max-width: 760px) {
+      .site-nav { padding: 12px 5%; }
+      .menu-toggle { display: block; }
+      .nav-menu {
+        position: absolute;
+        top: calc(100% + 1px);
+        left: 0;
+        right: 0;
+        display: none;
+        align-items: stretch;
+        gap: 0;
+        padding: 12px 5% 20px;
+        background: rgba(8,10,18,.98);
+        border-bottom: 1px solid var(--line);
+      }
+      .nav-menu.open { display: flex; flex-direction: column; }
+      .nav-menu > a:not(.nav-cta) { padding: 13px 4px; }
+      .nav-cta { margin-top: 8px; }
+      .hero-new { grid-template-columns: 1fr; padding: 125px 6% 65px; gap: 20px; }
+      .hero-copy h1 { font-size: clamp(3rem, 11vw, 4.7rem); }
+      .hero-art { min-height: 420px; margin: 5px 5px 0; }
+      .finance-window { padding: 20px; }
+      .chip-left { left: -10px; top: 36px; }
+      .chip-right { right: -9px; bottom: 28px; }
+      .section-new { padding: 72px 6%; }
+      .feature-grid-new, .steps-new { grid-template-columns: 1fr; }
+      .section-heading { margin-bottom: 32px; }
+      .cta-new { margin: 0 5% 60px; padding: 42px 22px; }
+    }
+
+    @media (max-width: 420px) {
+      .brand { font-size: .9rem; }
+      .brand-mark { width: 35px; height: 35px; }
+      .hero-new { padding-top: 110px; }
+      .hero-copy h1 { font-size: 2.85rem; }
+      .hero-buttons { flex-direction: column; }
+      .hero-buttons a { width: 100%; }
+      .hero-trust { gap: 10px 14px; }
+      .hero-art { min-height: 365px; }
+      .finance-window { padding: 16px; }
+      .balance-amount { font-size: 1.6rem; }
+      .float-chip { padding: 11px; }
+      .chip-left { left: -6px; }
+      .chip-right { right: -6px; }
+      .mini-stat { padding: 9px 6px; }
+      .mini-stat strong { font-size: .8rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+      }
+      .reveal { opacity: 1; transform: none; }
+    }
+  </style>
 </head>
+
 <body class="home-page">
 
-<!-- ── NAV ──────────────────────────────────────────────────────────────── -->
-<nav class="navbar" id="navbar">
-  <div class="nav-brand">
-    <span class="logo-icon">◈</span>
-    <span class="logo-text">Fin<strong>Pilot</strong></span>
-  </div>
-  <ul class="nav-links">
-    <li><a href="#features">Features</a></li>
-    <li><a href="#stats">Why Us</a></li>
-    <li><a href="pages/login.html" class="btn-outline">Login</a></li>
-    <li><a href="pages/register.html" class="btn-primary">Get Started</a></li>
-  </ul>
-  <button class="hamburger" id="ham">☰</button>
-</nav>
-
-<!-- ── HERO ─────────────────────────────────────────────────────────────── -->
-<section class="hero">
-  <div class="hero-bg">
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
-    <div class="grid-overlay"></div>
-  </div>
-  <div class="hero-content">
-    <div class="hero-badge">🇮🇳 Made for Middle-Class India</div>
-    <h1 class="hero-title">
-      Your Personal<br/>
-      <span class="gradient-text">Digital CA</span><br/>
-      – At Zero Cost
-    </h1>
-    <p class="hero-sub">
-      Tax planning · Expense tracking · Investment guidance ·
-      Government schemes — all in one intelligent dashboard.
-    </p>
-    <div class="hero-cta">
-      <a href="pages/register.html" class="btn-primary btn-lg">Start Free →</a>
-      <a href="pages/dashboard.html" class="btn-ghost btn-lg">View Demo</a>
-    </div>
-    <div class="hero-stat-row">
-      <div class="hs"><strong>73%</strong><span>Indians lack financial literacy</span></div>
-      <div class="hs-div"></div>
-      <div class="hs"><strong>₹0</strong><span>Cost to use FinPilot</span></div>
-      <div class="hs-div"></div>
-      <div class="hs"><strong>6-in-1</strong><span>Financial tools in one place</span></div>
-    </div>
-  </div>
-  <div class="hero-visual">
-    <div class="card-float card-f1">
-      <div class="cf-label">Monthly Savings</div>
-      <div class="cf-value">₹18,400</div>
-      <div class="cf-bar"><div class="cf-fill" style="width:62%"></div></div>
-    </div>
-    <div class="card-float card-f2">
-      <div class="cf-label">Financial Score</div>
-      <div class="cf-score">74<span>/100</span></div>
-    </div>
-    <div class="card-float card-f3">
-      <div class="cf-icon">✅</div>
-      <div class="cf-msg">SIP of ₹3,000 added</div>
-    </div>
-  </div>
-</section>
-
-<!-- ── FEATURES ──────────────────────────────────────────────────────────── -->
-<section class="features" id="features">
-  <div class="section-label">What We Offer</div>
-  <h2 class="section-title">6 Powerful Tools,<br/>One Dashboard</h2>
-  <div class="features-grid">
-    <a href="pages/dashboard.html" class="feat-card">
-      <div class="feat-icon">📊</div>
-      <h3>Smart Dashboard</h3>
-      <p>See income, expenses, savings and financial health score at a glance.</p>
-      <div class="feat-arrow">→</div>
+  <header class="site-nav" id="site-nav">
+    <a class="brand" href="#home" aria-label="Smart Finance System home">
+      <span class="brand-mark">↗</span>
+      <span>SMART <em>FINANCE</em></span>
     </a>
-    <a href="pages/tax.html" class="feat-card">
-      <div class="feat-icon">🧾</div>
-      <h3>Tax Calculator</h3>
-      <p>Old vs New regime comparison with deduction inputs. Know your exact tax.</p>
-      <div class="feat-arrow">→</div>
-    </a>
-    <a href="pages/expenses.html" class="feat-card">
-      <div class="feat-icon">💳</div>
-      <h3>Expense Tracker</h3>
-      <p>Log and categorize expenses. Get visual pie charts and smart insights.</p>
-      <div class="feat-arrow">→</div>
-    </a>
-    <a href="pages/investments.html" class="feat-card">
-      <div class="feat-icon">📈</div>
-      <h3>Investment Planner</h3>
-      <p>Personalized SIP, PPF, FD, ELSS allocations based on your risk profile.</p>
-      <div class="feat-arrow">→</div>
-    </a>
-    <a href="pages/schemes.html" class="feat-card">
-      <div class="feat-icon">🏛️</div>
-      <h3>Govt Scheme Finder</h3>
-      <p>Find PMJJBY, Sukanya Samriddhi, APY and other schemes you qualify for.</p>
-      <div class="feat-arrow">→</div>
-    </a>
-    <a href="pages/chatbot.html" class="feat-card feat-card-accent">
-      <div class="feat-icon">🤖</div>
-      <h3>AI Financial Advisor</h3>
-      <p>Ask anything about tax saving, investments, budgeting, or loans in plain Hindi/English.</p>
-      <div class="feat-arrow">→</div>
-    </a>
-  </div>
-</section>
 
-<!-- ── STATS ─────────────────────────────────────────────────────────────── -->
-<section class="stats-section" id="stats">
-  <div class="stats-inner">
-    <div class="stat-block">
-      <div class="stat-num">27%</div>
-      <div class="stat-desc">Indians are financially literate — <em>we serve the other 73%</em></div>
-    </div>
-    <div class="stat-block">
-      <div class="stat-num">9.5%</div>
-      <div class="stat-desc">Households actually invest in markets — <em>we bridge the gap</em></div>
-    </div>
-    <div class="stat-block">
-      <div class="stat-num">₹2K+</div>
-      <div class="stat-desc">Average CA consultation fee — <em>FinPilot is free</em></div>
-    </div>
-  </div>
-</section>
+    <button class="menu-toggle" id="menu-toggle" type="button"
+      aria-label="Toggle navigation" aria-expanded="false">☰</button>
 
-<!-- ── HOW IT WORKS ───────────────────────────────────────────────────────── -->
-<section class="how-section">
-  <div class="section-label">How It Works</div>
-  <h2 class="section-title">3 Steps to Financial Clarity</h2>
-  <div class="steps">
-    <div class="step">
-      <div class="step-num">01</div>
-      <h3>Create Profile</h3>
-      <p>Enter your income, age and risk preference. Takes under 2 minutes.</p>
-    </div>
-    <div class="step-connector">────────</div>
-    <div class="step">
-      <div class="step-num">02</div>
-      <h3>Track & Calculate</h3>
-      <p>Log expenses, calculate tax, and explore investment options.</p>
-    </div>
-    <div class="step-connector">────────</div>
-    <div class="step">
-      <div class="step-num">03</div>
-      <h3>Get Guided</h3>
-      <p>AI chatbot gives personalized financial advice anytime you need it.</p>
-    </div>
-  </div>
-</section>
+    <nav class="nav-menu" id="nav-menu" aria-label="Main navigation">
+      <a href="#features">Features</a>
+      <a href="#how-it-works">How it works</a>
+      <a href="pages/login.html">Sign in</a>
+      <a class="nav-cta" href="pages/register.html">Get started free <span>↗</span></a>
+    </nav>
+  </header>
 
-<!-- ── FOOTER ─────────────────────────────────────────────────────────────── -->
-<footer class="footer">
-  <div class="footer-brand">
-    <span class="logo-icon">◈</span> FinPilot
-  </div>
-  <p>Built by a BTech student for middle-class India.</p>
-  <div class="footer-links">
-    <a href="pages/dashboard.html">Dashboard</a>
-    <a href="pages/tax.html">Tax</a>
-    <a href="pages/expenses.html">Expenses</a>
-    <a href="pages/chatbot.html">AI Chat</a>
-  </div>
-</footer>
+  <main>
+    <section class="hero-new" id="home">
+      <div class="hero-grid"></div>
+      <div class="glow-orb one"></div>
+      <div class="glow-orb two"></div>
 
-<script src="js/main.js"></script>
+      <div class="hero-copy">
+        <div class="eyebrow"><span class="live-dot"></span> Your personal finance companion</div>
+
+        <h1>
+          Make your money
+          <span class="hero-gradient">work smarter.</span>
+        </h1>
+
+        <p class="hero-description">
+          Take control of your financial future. Track spending, understand taxes,
+          build better saving habits, and explore investment options—all in one place.
+        </p>
+
+        <div class="hero-buttons">
+          <a class="button-primary" href="pages/register.html">Start for free <span>→</span></a>
+          <a class="button-secondary" href="#features">Explore features <span>↓</span></a>
+        </div>
+
+        <div class="hero-trust">
+          <span><b class="check">✓</b> Expense tracking</span>
+          <span><b class="check">✓</b> Tax planning tools</span>
+          <span><b class="check">✓</b> Savings insights</span>
+        </div>
+      </div>
+
+      <div class="hero-art" aria-label="Illustration of a personal finance dashboard">
+        <div class="art-glow"></div>
+
+        <div class="float-chip chip-left">
+          <span class="chip-icon">✦</span>
+          <small>Financial wellness</small>
+          <strong>Build good habits</strong>
+        </div>
+
+        <div class="finance-window">
+          <div class="window-top">
+            <div>
+              <div class="window-title">Your money overview</div>
+              <div class="window-subtitle">A sample dashboard preview</div>
+            </div>
+            <div class="window-dots"><i></i><i></i><i></i></div>
+          </div>
+
+          <div class="balance-label">Illustrative available balance</div>
+          <div class="balance-line">
+            <div class="balance-amount">₹84,250</div>
+            <span class="gain-pill">↗ Sample</span>
+          </div>
+
+          <div class="chart-box">
+            <svg viewBox="0 0 400 145" role="img" aria-label="Decorative upward-trending sample chart">
+              <defs>
+                <linearGradient id="chart-fill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#a78bfa" stop-opacity=".34"/>
+                  <stop offset="100%" stop-color="#a78bfa" stop-opacity="0"/>
+                </linearGradient>
+                <linearGradient id="chart-stroke" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stop-color="#8b5cf6"/>
+                  <stop offset="100%" stop-color="#67e8f9"/>
+                </linearGradient>
+              </defs>
+              <g stroke="rgba(190,200,235,.10)" stroke-width="1">
+                <path d="M0 25 H400 M0 60 H400 M0 95 H400 M0 130 H400"/>
+              </g>
+              <path d="M0 115 C30 105 42 118 72 91 S118 96 145 72 S190 89 222 55 S270 68 298 40 S350 52 400 12 L400 145 L0 145 Z" fill="url(#chart-fill)"/>
+              <path class="chart-line" d="M0 115 C30 105 42 118 72 91 S118 96 145 72 S190 89 222 55 S270 68 298 40 S350 52 400 12" fill="none" stroke="url(#chart-stroke)" stroke-width="3" stroke-linecap="round"/>
+              <circle cx="400" cy="12" r="5" fill="#67e8f9"/>
+            </svg>
+          </div>
+
+          <div class="window-bottom">
+            <div class="mini-stat"><span>Saving goal</span><strong>On track</strong></div>
+            <div class="mini-stat"><span>Spending</span><strong>Organized</strong></div>
+            <div class="mini-stat"><span>Tax tools</span><strong>Available</strong></div>
+          </div>
+        </div>
+
+        <div class="float-chip chip-right">
+          <span class="chip-icon">◈</span>
+          <small>Smart saving</small>
+          <strong>Small steps count</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="trust-strip" aria-label="Platform features">
+      <p>One place for your money management</p>
+      <div class="trust-item"><span class="trust-icon">◉</span> Track expenses</div>
+      <div class="trust-item"><span class="trust-icon">⌁</span> Plan taxes</div>
+      <div class="trust-item"><span class="trust-icon">◇</span> Explore investing</div>
+      <div class="trust-item"><span class="trust-icon">✧</span> Improve savings</div>
+    </section>
+
+    <section class="section-new" id="features">
+      <div class="section-heading reveal">
+        <span class="section-kicker">Everything in one place</span>
+        <h2>Financial clarity, <span class="hero-gradient">without the complexity.</span></h2>
+        <p>Simple tools that help you understand where your money goes and plan what comes next.</p>
+      </div>
+
+      <div class="feature-grid-new">
+        <article class="feature-new reveal">
+          <div class="feature-icon-new">◷</div>
+          <h3>Expense tracking</h3>
+          <p>Record your spending, organize transactions, and understand your spending patterns.</p>
+        </article>
+
+        <article class="feature-new reveal">
+          <div class="feature-icon-new">₹</div>
+          <h3>Tax calculator</h3>
+          <p>Explore tax estimates and compare available tax-planning options using your details.</p>
+        </article>
+
+        <article class="feature-new reveal">
+          <div class="feature-icon-new">↗</div>
+          <h3>Investment guidance</h3>
+          <p>Learn about investment choices and explore options that fit your financial goals.</p>
+        </article>
+
+        <article class="feature-new reveal">
+          <div class="feature-icon-new">◎</div>
+          <h3>Savings goals</h3>
+          <p>Set targets, build consistent saving habits, and monitor progress toward your goals.</p>
+        </article>
+
+        <article class="feature-new reveal">
+          <div class="feature-icon-new">✦</div>
+          <h3>AI financial assistant</h3>
+          <p>Get help understanding personal-finance concepts and making informed decisions.</p>
+        </article>
+
+        <article class="feature-new reveal">
+          <div class="feature-icon-new">⌂</div>
+          <h3>Government schemes</h3>
+          <p>Explore relevant government financial schemes and learn about their eligibility criteria.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section-new how-new" id="how-it-works">
+      <div class="section-heading reveal">
+        <span class="section-kicker">Simple by design</span>
+        <h2>Start with three simple steps.</h2>
+        <p>Build a clearer picture of your finances at your own pace.</p>
+      </div>
+
+      <div class="steps-new">
+        <article class="step-new reveal">
+          <div class="step-number">01</div>
+          <h3>Create your account</h3>
+          <p>Register and start setting up your personal finance workspace.</p>
+        </article>
+
+        <article class="step-new reveal">
+          <div class="step-number">02</div>
+          <h3>Understand your money</h3>
+          <p>Use the available tools to organize expenses and explore your financial picture.</p>
+        </article>
+
+        <article class="step-new reveal">
+          <div class="step-number">03</div>
+          <h3>Plan your next move</h3>
+          <p>Work toward saving goals and make more informed financial decisions.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="cta-new reveal">
+      <span class="section-kicker">Your next step starts here</span>
+      <h2>Give your money a smarter direction.</h2>
+      <p>Start organizing your finances with tools designed to make personal money management easier to understand.</p>
+      <a class="button-primary" href="pages/register.html">Create your free account <span>→</span></a>
+    </section>
+  </main>
+
+  <footer class="footer-new">
+    <a class="brand" href="#home">
+      <span class="brand-mark">↗</span>
+      <span>SMART <em style="color:#a78bfa;font-style:normal">FINANCE</em></span>
+    </a>
+    <span>© <span id="current-year"></span> Smart Finance System</span>
+    <div class="footer-links-new">
+      <a href="pages/login.html">Sign in</a>
+      <a href="pages/register.html">Register</a>
+      <a href="#features">Features</a>
+    </div>
+  </footer>
+
+  <script>
+    // Mobile navigation
+    const menuToggle = document.getElementById("menu-toggle");
+    const navMenu = document.getElementById("nav-menu");
+
+    menuToggle.addEventListener("click", () => {
+      const isOpen = navMenu.classList.toggle("open");
+      menuToggle.setAttribute("aria-expanded", String(isOpen));
+      menuToggle.textContent = isOpen ? "✕" : "☰";
+    });
+
+    navMenu.querySelectorAll("a").forEach(link => {
+      link.addEventListener("click", () => {
+        navMenu.classList.remove("open");
+        menuToggle.setAttribute("aria-expanded", "false");
+        menuToggle.textContent = "☰";
+      });
+    });
+
+    // Frosted navigation on scroll
+    const siteNav = document.getElementById("site-nav");
+    const updateNav = () => {
+      siteNav.classList.toggle("scrolled", window.scrollY > 20);
+    };
+    updateNav();
+    window.addEventListener("scroll", updateNav, { passive: true });
+
+    // Reveal sections as they enter the viewport
+    const revealItems = document.querySelectorAll(".reveal");
+
+    if ("IntersectionObserver" in window &&
+        !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      const revealObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.12, rootMargin: "0px 0px -25px 0px" });
+
+      revealItems.forEach(item => revealObserver.observe(item));
+    } else {
+      revealItems.forEach(item => item.classList.add("visible"));
+    }
+
+    // Current year in footer
+    document.getElementById("current-year").textContent =
+      new Date().getFullYear();
+  </script>
 </body>
 </html>

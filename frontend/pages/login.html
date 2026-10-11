@@ -4,59 +4,614 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Login - Smart Finance System</title>
+  <meta name="theme-color" content="#080b18">
+
+  <title>Login | Smart Finance System</title>
+
   <link rel="stylesheet" href="../css/style.css">
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      color: #f4f5ff;
+      background:
+        radial-gradient(ellipse at 15% 15%, rgba(124, 58, 237, .19), transparent 42%),
+        radial-gradient(ellipse at 90% 85%, rgba(34, 211, 238, .12), transparent 40%),
+        #080b18;
+    }
+
+    .auth-page {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: center;
+      gap: 60px;
+      max-width: 1200px;
+      margin: auto;
+      padding: 55px 35px;
+    }
+
+    .login-intro {
+      animation: slideIn .7s ease both;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 38px;
+      color: #fff;
+      text-decoration: none;
+      font-size: 19px;
+      font-weight: 750;
+    }
+
+    .brand-icon {
+      display: grid;
+      place-items: center;
+      width: 45px;
+      height: 45px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #8b5cf6, #22d3ee);
+      box-shadow: 0 8px 30px rgba(124, 58, 237, .3);
+      font-size: 23px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 13px;
+      margin-bottom: 22px;
+      border: 1px solid rgba(167, 139, 250, .25);
+      border-radius: 30px;
+      color: #c4b5fd;
+      background: rgba(139, 92, 246, .09);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .eyebrow span {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #34d399;
+      box-shadow: 0 0 12px #34d399;
+    }
+
+    .login-intro h1 {
+      max-width: 550px;
+      margin: 0 0 20px;
+      font-size: clamp(38px, 5vw, 61px);
+      line-height: 1.1;
+      letter-spacing: -2px;
+    }
+
+    .gradient-text {
+      background: linear-gradient(100deg, #a78bfa, #67e8f9);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .intro-description {
+      max-width: 450px;
+      color: #a1a8c2;
+      font-size: 16px;
+      line-height: 1.9;
+    }
+
+    .benefit-list {
+      display: grid;
+      gap: 19px;
+      margin-top: 35px;
+    }
+
+    .benefit {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      color: #d8dcef;
+      font-size: 14px;
+    }
+
+    .benefit-icon {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      flex-shrink: 0;
+      border: 1px solid rgba(167, 139, 250, .2);
+      border-radius: 12px;
+      background: rgba(139, 92, 246, .12);
+      color: #c4b5fd;
+      font-size: 17px;
+    }
+
+    .auth-card {
+      width: 100%;
+      max-width: 450px;
+      justify-self: center;
+      padding: 39px;
+      border: 1px solid rgba(148, 163, 184, .18);
+      border-radius: 25px;
+      background: rgba(17, 24, 43, .82);
+      box-shadow: 0 25px 90px rgba(0, 0, 0, .3);
+      backdrop-filter: blur(20px);
+      animation: cardIn .75s ease both;
+    }
+
+    .card-icon {
+      display: grid;
+      place-items: center;
+      width: 52px;
+      height: 52px;
+      margin-bottom: 23px;
+      border: 1px solid rgba(167, 139, 250, .25);
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(139, 92, 246, .2), rgba(34, 211, 238, .1));
+      font-size: 24px;
+    }
+
+    .auth-card h2 {
+      margin: 0 0 10px;
+      color: #fff;
+      font-size: 29px;
+      letter-spacing: -.7px;
+    }
+
+    .auth-subtitle {
+      margin: 0 0 29px;
+      color: #9ca6c0;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    #login-form {
+      display: grid;
+      gap: 10px;
+    }
+
+    #login-form label {
+      margin-top: 9px;
+      color: #dce1f2;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    #login-form input {
+      width: 100%;
+      min-width: 0;
+      height: 49px;
+      padding: 0 14px;
+      border: 1px solid #303951;
+      border-radius: 12px;
+      outline: none;
+      background: #0c1223;
+      color: #f4f5ff;
+      font: inherit;
+      font-size: 14px;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    #login-form input::placeholder {
+      color: #69748f;
+    }
+
+    #login-form input:focus {
+      border-color: #8b5cf6;
+      box-shadow: 0 0 0 4px rgba(139, 92, 246, .13);
+    }
+
+    .password-wrap {
+      position: relative;
+    }
+
+    .password-wrap input {
+      padding-right: 75px !important;
+    }
+
+    .toggle-password {
+      position: absolute;
+      top: 50%;
+      right: 12px;
+      transform: translateY(-50%);
+      border: 0;
+      background: transparent;
+      color: #a5b0ca;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .toggle-password:hover {
+      color: #c4b5fd;
+    }
+
+    .form-options {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 7px 0 12px;
+      color: #9ca6c0;
+      font-size: 12px;
+    }
+
+    .remember-option {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      cursor: pointer;
+    }
+
+    .remember-option input {
+      width: 14px !important;
+      height: 14px !important;
+      accent-color: #8b5cf6;
+    }
+
+    .form-options a,
+    .auth-footer a {
+      color: #c4b5fd;
+      text-decoration: none;
+      font-weight: 650;
+    }
+
+    .form-options a:hover,
+    .auth-footer a:hover {
+      color: #67e8f9;
+    }
+
+    #login-button {
+      width: 100%;
+      min-height: 50px;
+      margin-top: 8px;
+      border: 0;
+      border-radius: 12px;
+      background: linear-gradient(100deg, #7c3aed, #6366f1 55%, #0891b2);
+      color: #fff;
+      cursor: pointer;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 750;
+      box-shadow: 0 10px 28px rgba(99, 102, 241, .22);
+      transition: transform .2s, box-shadow .2s, opacity .2s;
+    }
+
+    #login-button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 32px rgba(99, 102, 241, .32);
+    }
+
+    #login-button:disabled {
+      opacity: .7;
+      cursor: wait;
+    }
+
+    #message {
+      display: none;
+      margin-bottom: 17px;
+      padding: 12px 14px;
+      border: 1px solid rgba(248, 113, 113, .25);
+      border-radius: 10px;
+      background: rgba(239, 68, 68, .09);
+      color: #fca5a5;
+      font-size: 13px;
+      line-height: 1.6;
+      overflow-wrap: anywhere;
+    }
+
+    #message.success {
+      border-color: rgba(52, 211, 153, .25);
+      background: rgba(52, 211, 153, .08);
+      color: #6ee7b7;
+    }
+
+    .auth-footer {
+      margin: 25px 0 0;
+      color: #9ca6c0;
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.8;
+    }
+
+    .security-note {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 7px;
+      margin-top: 25px;
+      color: #76829e;
+      font-size: 11px;
+    }
+
+    .page-bottom {
+      margin-top: 30px;
+      color: #67728d;
+      text-align: center;
+      font-size: 11px;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    @keyframes cardIn {
+      from {
+        opacity: 0;
+        transform: translateY(18px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 800px) {
+      .auth-page {
+        grid-template-columns: 1fr;
+        gap: 35px;
+        padding: 35px 20px;
+      }
+
+      .login-intro {
+        text-align: center;
+      }
+
+      .brand {
+        margin-bottom: 24px;
+      }
+
+      .login-intro h1,
+      .intro-description {
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .benefit-list {
+        display: none;
+      }
+
+      .auth-card {
+        max-width: 470px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .auth-page {
+        padding: 24px 14px;
+      }
+
+      .login-intro h1 {
+        font-size: 37px;
+        letter-spacing: -1px;
+      }
+
+      .intro-description {
+        font-size: 14px;
+      }
+
+      .auth-card {
+        padding: 27px 21px;
+        border-radius: 20px;
+      }
+
+      .auth-card h2 {
+        font-size: 25px;
+      }
+
+      .form-options {
+        font-size: 11px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: .01ms !important;
+        transition-duration: .01ms !important;
+      }
+    }
+  </style>
 </head>
+
 <body>
   <main class="auth-page">
-    <div class="auth-card">
-      <h2>Smart Finance System</h2>
-      <p>Login to your personal finance dashboard</p>
 
-      <div id="message" role="alert"></div>
+    <section class="login-intro">
+      <a class="brand" href="../index.html">
+        <span class="brand-icon" aria-hidden="true">₹</span>
+        <span>Smart Finance System</span>
+      </a>
+
+      <div class="eyebrow">
+        <span></span>
+        Your money, made smarter
+      </div>
+
+      <h1>
+        Take control of your
+        <span class="gradient-text">financial future.</span>
+      </h1>
+
+      <p class="intro-description">
+        Track your expenses, understand your taxes, explore investment
+        options, and make better financial decisions from one simple dashboard.
+      </p>
+
+      <div class="benefit-list">
+        <div class="benefit">
+          <span class="benefit-icon" aria-hidden="true">↗</span>
+          <span>Understand your spending and saving habits</span>
+        </div>
+
+        <div class="benefit">
+          <span class="benefit-icon" aria-hidden="true">₹</span>
+          <span>Plan your budget and estimate your taxes</span>
+        </div>
+
+        <div class="benefit">
+          <span class="benefit-icon" aria-hidden="true">✦</span>
+          <span>Explore financial guidance in one place</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="auth-card" aria-labelledby="login-title">
+      <div class="card-icon" aria-hidden="true">🔐</div>
+
+      <h2 id="login-title">Welcome back</h2>
+      <p class="auth-subtitle">
+        Sign in to continue to your personal finance dashboard.
+      </p>
+
+      <div id="message" role="alert" aria-live="polite"></div>
 
       <form id="login-form">
         <label for="email">Email address</label>
         <input
           id="email"
+          name="email"
           type="email"
+          placeholder="you@example.com"
           autocomplete="email"
           required
         >
 
         <label for="password">Password</label>
-        <input
-          id="password"
-          type="password"
-          autocomplete="current-password"
-          required
-        >
+        <div class="password-wrap">
+          <input
+            id="password"
+            name="password"
+            type="password"
+            placeholder="Enter your password"
+            autocomplete="current-password"
+            required
+          >
+          <button
+            class="toggle-password"
+            id="toggle-password"
+            type="button"
+            aria-controls="password"
+            aria-pressed="false"
+          >Show</button>
+        </div>
 
-        <button id="login-button" type="submit">Login</button>
+        <div class="form-options">
+          <label class="remember-option" for="remember-email">
+            <input id="remember-email" type="checkbox">
+            Remember email
+          </label>
+
+          <a href="#" id="forgot-password">Forgot password?</a>
+        </div>
+
+        <button id="login-button" type="submit">
+          Sign in to your account →
+        </button>
       </form>
 
-      <p>
+      <p class="auth-footer">
         Don't have an account?
-        <a href="register.html">Register here</a>
+        <a href="register.html">Create an account</a>
       </p>
-    </div>
+
+      <div class="security-note">
+        <span aria-hidden="true">🛡</span>
+        Your financial journey starts here
+      </div>
+
+      <div class="page-bottom">
+        © <span id="current-year"></span> Smart Finance System
+      </div>
+    </section>
   </main>
 
   <script src="../js/main.js"></script>
+
   <script>
     const form = document.getElementById("login-form");
     const button = document.getElementById("login-button");
     const message = document.getElementById("message");
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
+    const togglePassword = document.getElementById("toggle-password");
+    const rememberEmail = document.getElementById("remember-email");
+
+    document.getElementById("current-year").textContent =
+      new Date().getFullYear();
+
+    function showMessage(text, type = "error") {
+      message.textContent = text;
+      message.className = type === "success" ? "success" : "";
+      message.style.display = "block";
+    }
+
+    function clearMessage() {
+      message.textContent = "";
+      message.className = "";
+      message.style.display = "none";
+    }
+
+    // Show or hide the password.
+    togglePassword.addEventListener("click", () => {
+      const isPassword = passwordInput.type === "password";
+
+      passwordInput.type = isPassword ? "text" : "password";
+      togglePassword.textContent = isPassword ? "Hide" : "Show";
+      togglePassword.setAttribute("aria-pressed", String(isPassword));
+    });
+
+    // Restore the saved email only when the user previously chose Remember email.
+    try {
+      const savedEmail = localStorage.getItem("fp_login_email");
+
+      if (savedEmail) {
+        emailInput.value = savedEmail;
+        rememberEmail.checked = true;
+      }
+    } catch (error) {
+      console.warn("Email preference could not be restored.");
+    }
+
+    document.getElementById("forgot-password").addEventListener("click", (event) => {
+      event.preventDefault();
+      showMessage(
+        "Password recovery is not connected yet. Please contact your administrator or use your account's available recovery process."
+      );
+    });
 
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
+      clearMessage();
 
-      message.textContent = "";
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+
+      if (!email || !password) {
+        showMessage("Please enter both your email address and password.");
+        return;
+      }
+
       button.disabled = true;
-      button.textContent = "Logging in...";
-
-      const email = document.getElementById("email").value.trim();
-      const password = document.getElementById("password").value;
+      button.textContent = "Signing in...";
 
       try {
         const response = await api("/api/login", "POST", {
@@ -66,7 +621,7 @@
 
         if (!response || response.error || response.success === false) {
           throw new Error(
-            response?.error || response?.message || "Login failed."
+            response?.error || response?.message || "Login failed. Please check your details."
           );
         }
 
@@ -74,15 +629,14 @@
 
         if (!user.email || user.email.toLowerCase() !== email.toLowerCase()) {
           throw new Error(
-            "The server did not return the expected account. Check the backend login response."
+            "The server did not return the expected account. Please check the backend login response."
           );
         }
 
         if (user.email.toLowerCase() === "demo@finpilot.in") {
-          throw new Error("The backend returned demo account details.");
+          throw new Error("The backend returned demo account details instead of your account.");
         }
 
-        // Use the same storage key as the dashboard.
         const savedUser = {
           ...user,
           email: user.email,
@@ -91,14 +645,39 @@
 
         sessionStorage.setItem("fp_user", JSON.stringify(savedUser));
 
+        try {
+          if (rememberEmail.checked) {
+            localStorage.setItem("fp_login_email", email);
+          } else {
+            localStorage.removeItem("fp_login_email");
+          }
+        } catch (storageError) {
+          console.warn("Email preference could not be saved.");
+        }
+
+        showMessage("Login successful! Opening your dashboard...", "success");
+        button.textContent = "Success!";
+
         window.location.href = "dashboard.html";
       } catch (error) {
         console.error("Login failed:", error);
-        message.textContent = error.message || "Unable to log in.";
-        message.style.color = "red";
+
+        let errorText = error.message || "Unable to log in. Please try again.";
+
+        if (
+          error instanceof TypeError ||
+          /failed to fetch|networkerror/i.test(errorText)
+        ) {
+          errorText =
+            "Unable to connect to the server. Please check your internet connection and try again.";
+        }
+
+        showMessage(errorText);
       } finally {
-        button.disabled = false;
-        button.textContent = "Login";
+        if (button.textContent !== "Success!") {
+          button.disabled = false;
+          button.textContent = "Sign in to your account →";
+        }
       }
     });
   </script>
