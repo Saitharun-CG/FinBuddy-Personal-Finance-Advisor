@@ -18,11 +18,15 @@ app = Flask(__name__)
 FRONTEND_ORIGIN = os.environ.get(
     "FRONTEND_ORIGIN",
     "https://finbuddy-frontend.onrender.com"
-)
+).rstrip("/")
 
-CORS(app, resources={
-    r"/api/*": {"origins": [FRONTEND_ORIGIN]}
-})
+# Allow requests from the deployed frontend.
+CORS(
+    app,
+    resources={r"/api/*": {"origins": [FRONTEND_ORIGIN]}},
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"]
+)
 
 
 # =========================================================
@@ -70,35 +74,27 @@ def execute(sql, params=(), returning=False):
 def json_safe(value):
     if isinstance(value, Decimal):
         return float(value)
-
     if isinstance(value, (datetime.date, datetime.datetime)):
         return value.isoformat()
-
     if isinstance(value, dict):
         return {k: json_safe(v) for k, v in value.items()}
-
-    if isinstance(value, list):
+    if isinstance(value, (list, tuple)):
         return [json_safe(v) for v in value]
-
     return value
 
 
 def request_data():
-    return request.get_json(silent=True) or {}
+    data = request.get_json(silent=True)
+    return data if isinstance(data, dict) else {}
 
 
 def today():
     return datetime.date.today().isoformat()
 
 
-def get_user(email):
-    return query_one(
-        """SELECT user_id, name, email, password, age,
-                  monthly_income, risk_appetite
-           FROM users WHERE email = %s""",
-        (email,)
-    )
-
+# =========================================================
+# PASSWORD SECURITY
+# =========================================================
 
 def hash_password(password):
     salt = os.urandom(16)
@@ -118,7 +114,10 @@ def hash_password(password):
 
 
 def verify_password(password, stored):
-    # Current secure password format
+    if not isinstance(stored, str):
+        return False, None
+
+    # Current password format.
     if stored.startswith("pbkdf2_sha256$"):
         try:
             _, iterations, salt, expected = stored.split("$", 3)
@@ -135,7 +134,7 @@ def verify_password(password, stored):
         except (ValueError, TypeError):
             return False, None
 
-    # Compatibility with passwords from the previous SHA-256 version.
+    # Support passwords created by the older SHA-256 version.
     old_hash = hashlib.sha256(
         password.encode("utf-8")
     ).hexdigest()
@@ -146,12 +145,29 @@ def verify_password(password, stored):
     return False, None
 
 
+def get_user(email):
+    return query_one(
+        """
+        SELECT user_id, name, email, password, age,
+               monthly_income, risk_appetite
+        FROM users
+        WHERE email = %s
+        """,
+        (email,)
+    )
+
+
+# =========================================================
+# ERROR HANDLING
+# =========================================================
+
 @app.errorhandler(Exception)
 def handle_error(error):
     if isinstance(error, HTTPException):
         return error
 
     app.logger.exception("Backend error")
+
     return jsonify({
         "error": "Internal server error. Check Render logs."
     }), 500
@@ -164,9 +180,9 @@ def handle_error(error):
 @app.route("/", methods=["GET"])
 def home():
     return jsonify({
-        "app": "FinBuddy Personal Finance Advisor",
+        "app": "Smart Finance System",
         "status": "running",
-        "message": "Backend API is working!"
+        "message": "Backend API is working"
     })
 
 
@@ -174,19 +190,32 @@ def home():
 def health():
     try:
         query_one("SELECT 1 AS result")
-
         return jsonify({
             "status": "healthy",
             "database": "connected"
         })
-
     except Exception:
         app.logger.exception("Database health check failed")
-
         return jsonify({
             "status": "unhealthy",
             "database": "disconnected"
         }), 503
+
+
+@app.route("/api/routes", methods=["GET"])
+def api_routes():
+    return jsonify({
+        "login": "/api/login",
+        "register": "/api/register",
+        "profile": "/api/profile",
+        "dashboard": "/api/dashboard",
+        "expenses": "/api/expenses",
+        "expense_summary": "/api/expenses/summary",
+        "tax_calculator": "/api/tax/calculate",
+        "investment_planner": "/api/investments/suggest",
+        "schemes": "/api/schemes",
+        "chatbot": "/api/chat"
+    })
 
 
 # =========================================================
@@ -216,43 +245,52 @@ def register():
         income = float(
             data.get("income", data.get("monthly_income", 0)) or 0
         )
-        risk = data.get(
-            "risk", data.get("risk_appetite", "moderate")
-        )
+        risk = str(
+            data.get("risk", data.get("risk_appetite", "moderate"))
+        ).lower()
 
         if age < 1 or age > 120 or income < 0:
-            raise ValueError()
+            raise ValueError
 
         if risk not in ("conservative", "moderate", "aggressive"):
             return jsonify({"error": "Invalid risk profile"}), 400
 
-    except (ValueError, TypeError):
-        return jsonify({"error": "Invalid registration details"}), 400
+    except (ValueError, TypeError, OverflowError):
+        return jsonify({
+            "error": "Invalid registration details"
+        }), 400
 
     try:
         user = execute(
-            """INSERT INTO users
-               (name, email, password, age,
-                monthly_income, risk_appetite)
-               VALUES (%s, %s, %s, %s, %s, %s)
-               RETURNING user_id""",
+            """
+            INSERT INTO users
+                (name, email, password, age,
+                 monthly_income, risk_appetite)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            RETURNING user_id
+            """,
             (
-                name, email, hash_password(password),
-                age, income, risk
+                name,
+                email,
+                hash_password(password),
+                age,
+                income,
+                risk
             ),
             returning=True
         )
 
         return jsonify({
             "message": "Registered successfully",
+            "user_id": user["user_id"],
             "name": name,
-            "user_id": user["user_id"]
+            "email": email
         }), 201
 
     except psycopg2.errors.UniqueViolation:
         return jsonify({
             "error": "Email already registered"
-        }), 400
+        }), 409
 
 
 # =========================================================
@@ -266,17 +304,27 @@ def login():
     email = str(data.get("email", "")).strip().lower()
     password = str(data.get("password", ""))
 
+    if not email or not password:
+        return jsonify({
+            "error": "Email and password are required"
+        }), 400
+
     user = get_user(email)
 
     if not user:
-        return jsonify({"error": "Invalid credentials"}), 401
+        return jsonify({
+            "error": "Invalid email or password"
+        }), 401
 
     valid, upgraded_hash = verify_password(
-        password, user["password"]
+        password,
+        user["password"]
     )
 
     if not valid:
-        return jsonify({"error": "Invalid credentials"}), 401
+        return jsonify({
+            "error": "Invalid email or password"
+        }), 401
 
     if upgraded_hash:
         execute(
@@ -284,11 +332,14 @@ def login():
             (upgraded_hash, user["user_id"])
         )
 
+    # Return the real database user's information.
+    # This endpoint does not redirect to a demo dashboard.
     return jsonify({
         "message": "Login successful",
+        "user_id": user["user_id"],
         "name": user["name"],
-        "email": email
-    })
+        "email": user["email"]
+    }), 200
 
 
 # =========================================================
@@ -298,13 +349,16 @@ def login():
 @app.route("/api/profile", methods=["GET"])
 def profile():
     email = request.args.get("email", "").strip().lower()
+
+    if not email:
+        return jsonify({"error": "Email is required"}), 400
+
     user = get_user(email)
 
     if not user:
         return jsonify({"error": "User not found"}), 404
 
     user.pop("password", None)
-
     user["income"] = float(user["monthly_income"] or 0)
     user["monthly_income"] = float(user["monthly_income"] or 0)
     user["risk"] = user["risk_appetite"]
@@ -329,11 +383,13 @@ def get_expenses():
         return jsonify([])
 
     expenses = query_all(
-        """SELECT expense_id AS id, category, amount,
-                  note, expense_date AS date
-           FROM expenses
-           WHERE user_id = %s
-           ORDER BY expense_date, expense_id""",
+        """
+        SELECT expense_id AS id, category, amount,
+               note, expense_date AS date
+        FROM expenses
+        WHERE user_id = %s
+        ORDER BY expense_date, expense_id
+        """,
         (user["user_id"],)
     )
 
@@ -353,9 +409,9 @@ def add_expense():
         datetime.date.fromisoformat(expense_date)
 
         if amount <= 0 or not category:
-            raise ValueError()
+            raise ValueError
 
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, OverflowError):
         return jsonify({
             "error": "Enter a valid category, amount and date"
         }), 400
@@ -369,14 +425,19 @@ def add_expense():
         return jsonify({"error": "User not found"}), 404
 
     expense = execute(
-        """INSERT INTO expenses
-           (user_id, category, amount, note, expense_date)
-           VALUES (%s, %s, %s, %s, %s)
-           RETURNING expense_id AS id, category, amount,
-                     note, expense_date AS date""",
+        """
+        INSERT INTO expenses
+            (user_id, category, amount, note, expense_date)
+        VALUES (%s, %s, %s, %s, %s)
+        RETURNING expense_id AS id, category, amount,
+                  note, expense_date AS date
+        """,
         (
-            user["user_id"], category, amount,
-            str(data.get("note", "")), expense_date
+            user["user_id"],
+            category,
+            amount,
+            str(data.get("note", "")),
+            expense_date
         ),
         returning=True
     )
@@ -400,9 +461,11 @@ def delete_expense(expense_id):
         return jsonify({"error": "User not found"}), 404
 
     deleted = execute(
-        """DELETE FROM expenses
-           WHERE expense_id = %s AND user_id = %s
-           RETURNING expense_id""",
+        """
+        DELETE FROM expenses
+        WHERE expense_id = %s AND user_id = %s
+        RETURNING expense_id
+        """,
         (expense_id, user["user_id"]),
         returning=True
     )
@@ -419,8 +482,11 @@ def delete_expense(expense_id):
 
 def build_expense_summary(email):
     user = query_one(
-        """SELECT user_id, monthly_income
-           FROM users WHERE email = %s""",
+        """
+        SELECT user_id, monthly_income
+        FROM users
+        WHERE email = %s
+        """,
         (email,)
     )
 
@@ -428,8 +494,11 @@ def build_expense_summary(email):
         return None
 
     expenses = query_all(
-        """SELECT category, amount FROM expenses
-           WHERE user_id = %s""",
+        """
+        SELECT category, amount
+        FROM expenses
+        WHERE user_id = %s
+        """,
         (user["user_id"],)
     )
 
@@ -561,7 +630,11 @@ def calculate_tax():
         hra = max(0, float(data.get("hra", 0)))
         other = max(0, float(data.get("other_ded", 0)))
 
-    except (ValueError, TypeError):
+        numbers = [income, ded_80c, ded_80d, hra, other]
+        if not all(__import__("math").isfinite(n) for n in numbers):
+            raise ValueError
+
+    except (ValueError, TypeError, OverflowError):
         return jsonify({"error": "Invalid tax input"}), 400
 
     old_taxable, old_tax = calc_old_regime(
@@ -591,7 +664,8 @@ def calculate_tax():
         ),
         "effective_rate_new": (
             round(new_tax / income * 100, 2) if income else 0
-        )
+        ),
+        "note": "Illustrative estimate only. Verify current tax rules before filing."
     })
 
 
@@ -610,8 +684,7 @@ def suggest_investments():
         savings = max(
             0, float(data.get("savings", income * 0.2))
         )
-
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, OverflowError):
         return jsonify({"error": "Invalid investment input"}), 400
 
     plans = {
@@ -637,7 +710,6 @@ def suggest_investments():
                 "reason": "Liquidity"
             }
         ],
-
         "moderate": [
             {
                 "type": "SIP – Mutual Funds", "pct": 35,
@@ -665,7 +737,6 @@ def suggest_investments():
                 "reason": "Emergency expenses"
             }
         ],
-
         "aggressive": [
             {
                 "type": "Equity Mutual Funds / ELSS", "pct": 50,
@@ -695,7 +766,6 @@ def suggest_investments():
 
     for item in plan:
         amount = round(savings * item["pct"] / 100)
-
         allocations.append({
             **item,
             "monthly_amount": amount,
@@ -711,7 +781,7 @@ def suggest_investments():
             if age < 40
             else "Consider balancing growth and lower-risk assets"
         ),
-        "note": "Investment returns are not guaranteed."
+        "note": "Investment returns are not guaranteed. This is general information, not personalized financial advice."
     })
 
 
@@ -791,10 +861,12 @@ SCHEMES = [
 def get_schemes():
     try:
         income = float(request.args.get("income", 9999999))
-    except ValueError:
+        if income < 0:
+            raise ValueError
+    except (ValueError, TypeError, OverflowError):
         return jsonify({"error": "Invalid income"}), 400
 
-    category = request.args.get("category", "")
+    category = request.args.get("category", "").strip()
 
     result = [
         scheme for scheme in SCHEMES
@@ -820,31 +892,26 @@ RESPONSES = {
         "Compare both tax regimes based on your income and eligible deductions.",
         "HRA exemption may apply when you meet the relevant conditions."
     ],
-
     "invest": [
         "Plan your investments based on your goals, time horizon and risk tolerance.",
         "SIP returns depend on market performance and are not guaranteed.",
         "Understand the risks and fees before investing in mutual funds.",
         "Consider an emergency fund before investing money you may need soon."
     ],
-
     "budget": [
         "Track your expenses and review your spending every month.",
         "Separate essential expenses from wants when creating your budget.",
         "Set a realistic monthly savings target."
     ],
-
     "save": [
         "Consider building an emergency fund for essential expenses.",
         "Review unused subscriptions and recurring costs.",
         "Compare your planned spending with your actual expenses."
     ],
-
     "scheme": [
         "Check the official scheme website for current eligibility and benefits.",
         "Government scheme terms can change, so verify details before applying."
     ],
-
     "loan": [
         "Pay EMIs on time and review your credit report regularly.",
         "Compare interest rates, fees and total repayment costs before borrowing.",
@@ -855,53 +922,46 @@ RESPONSES = {
 
 @app.route("/api/chat", methods=["POST"])
 def chat():
-    message = str(
-        request_data().get("message", "")
-    ).lower()
+    message = str(request_data().get("message", "")).lower()
+
+    if not message.strip():
+        return jsonify({"error": "Enter a message"}), 400
 
     if any(word in message for word in [
         "tax", "80c", "80d", "itr", "regime", "deduct"
     ]):
         group = "tax"
-
     elif any(word in message for word in [
         "invest", "sip", "mutual", "elss", "ppf",
         "nps", "fd", "stock"
     ]):
         group = "invest"
-
     elif any(word in message for word in [
         "budget", "expense", "spend", "track"
     ]):
         group = "budget"
-
     elif any(word in message for word in [
         "save", "saving", "emergency", "fund"
     ]):
         group = "save"
-
     elif any(word in message for word in [
         "scheme", "government", "pmjjby",
         "sukanya", "atal", "awas"
     ]):
         group = "scheme"
-
     elif any(word in message for word in [
         "loan", "emi", "cibil", "credit"
     ]):
         group = "loan"
-
     else:
         return jsonify({
             "reply": (
-                "I'm FinPilot AI. Ask me about tax, investments, "
-                "budgeting, saving, loans or government schemes!"
+                "I'm Smart Finance System AI. Ask me about tax, "
+                "investments, budgeting, saving, loans or government schemes!"
             )
         })
 
-    return jsonify({
-        "reply": random.choice(RESPONSES[group])
-    })
+    return jsonify({"reply": random.choice(RESPONSES[group])})
 
 
 # =========================================================
@@ -912,9 +972,15 @@ def chat():
 def dashboard():
     email = request.args.get("email", "").strip().lower()
 
+    if not email:
+        return jsonify({"error": "Email is required"}), 400
+
     user = query_one(
-        """SELECT user_id, name, monthly_income
-           FROM users WHERE email = %s""",
+        """
+        SELECT user_id, name, monthly_income
+        FROM users
+        WHERE email = %s
+        """,
         (email,)
     )
 
@@ -922,20 +988,20 @@ def dashboard():
         return jsonify({"error": "User not found"}), 404
 
     expenses = query_all(
-        """SELECT expense_id AS id, category, amount,
-                  note, expense_date AS date
-           FROM expenses
-           WHERE user_id = %s
-           ORDER BY expense_date, expense_id""",
+        """
+        SELECT expense_id AS id, category, amount,
+               note, expense_date AS date
+        FROM expenses
+        WHERE user_id = %s
+        ORDER BY expense_date, expense_id
+        """,
         (user["user_id"],)
     )
 
     income = float(user["monthly_income"] or 0)
-
     total_expenses = sum(
         float(expense["amount"]) for expense in expenses
     )
-
     savings = income - total_expenses
 
     score = max(
@@ -943,6 +1009,7 @@ def dashboard():
         min(100, int(savings / income * 100) if income else 0)
     )
 
+    # This is a rough estimate, not a current tax filing calculation.
     _, estimated_tax = calc_old_regime(
         income * 12, 150000, 25000, 0, 0
     )
@@ -951,13 +1018,13 @@ def dashboard():
 
     for expense in expenses:
         category = expense["category"]
-
         by_category[category] = (
             by_category.get(category, 0)
             + float(expense["amount"])
         )
 
     return jsonify(json_safe({
+        "user_id": user["user_id"],
         "name": user["name"],
         "monthly_income": income,
         "monthly_expenses": total_expenses,
