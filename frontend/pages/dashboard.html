@@ -1,93 +1,439 @@
 
-<script src="../js/main.js"></script>
-<script>
-async function loadDashboard() {
-  const user = getUser();
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard | Smart Finance System</title>
+  <link rel="stylesheet" href="../css/style.css">
 
-  if (!user || !user.email ||
-      user.email.toLowerCase() === "demo@finpilot.in") {
-    window.location.replace("login.html");
-    return;
-  }
-
-  const greet = document.getElementById("greet");
-  const sidebar = document.getElementById("sb-user");
-
-  if (greet) {
-    greet.textContent =
-      `Welcome, ${user.name || user.email}!`;
-  }
-
-  if (sidebar) {
-    sidebar.replaceChildren();
-
-    const name = document.createElement("strong");
-    name.textContent = user.name || user.email;
-
-    const email = document.createElement("div");
-    email.textContent = user.email;
-
-    sidebar.append(name, email);
-  }
-
-  try {
-    const data = await api(
-      "/api/dashboard?email=" + encodeURIComponent(user.email)
-    );
-
-    if (data.error || data.success === false) {
-      throw new Error(data.error || "Could not load your dashboard.");
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #0d0f17;
+      color: #f5f5f5;
+      font-family: Arial, sans-serif;
     }
 
-    const d = data.dashboard || data.data || data;
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding: 20px 5%;
+      border-bottom: 1px solid #292d3a;
+      background: #141722;
+    }
 
-    const values = {
-      "kpi-income": d.monthly_income,
-      "kpi-exp": d.monthly_expenses,
-      "kpi-save": d.monthly_savings,
-      "kpi-tax": d.annual_tax_estimate
-    };
+    .brand {
+      color: #f5a623;
+      font-size: 20px;
+      font-weight: bold;
+    }
 
-    for (const [id, value] of Object.entries(values)) {
-      const element = document.getElementById(id);
+    .topbar button, .action {
+      display: inline-block;
+      background: #f5a623;
+      color: #151515;
+      border: none;
+      border-radius: 8px;
+      padding: 11px 16px;
+      font-weight: bold;
+      text-decoration: none;
+      cursor: pointer;
+    }
 
-      if (element) {
-        element.textContent =
-          value == null
-            ? "—"
-            : new Intl.NumberFormat("en-IN", {
-                style: "currency",
-                currency: "INR",
-                maximumFractionDigits: 0
-              }).format(Number(value));
+    main {
+      width: min(1100px, 90%);
+      margin: 35px auto;
+    }
+
+    .muted { color: #a4a9b8; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 18px;
+      margin: 25px 0;
+    }
+
+    .card {
+      background: #171b28;
+      border: 1px solid #2b3040;
+      border-radius: 14px;
+      padding: 22px;
+      overflow-wrap: anywhere;
+    }
+
+    .card h3 {
+      margin-top: 0;
+      font-size: 14px;
+      color: #a4a9b8;
+      font-weight: normal;
+    }
+
+    .amount {
+      font-size: clamp(22px, 3vw, 30px);
+      font-weight: bold;
+      margin: 12px 0 0;
+    }
+
+    .section { margin-top: 28px; }
+
+    .message {
+      padding: 14px 18px;
+      border-radius: 8px;
+      margin: 18px 0;
+      background: #222738;
+      color: #f5f5f5;
+      overflow-wrap: anywhere;
+    }
+
+    .error {
+      border: 1px solid #d65b5b;
+      background: #321d25;
+      color: #ffdada;
+    }
+
+    .success {
+      border: 1px solid #347c56;
+      background: #173326;
+    }
+
+    .rank {
+      color: #f5a623;
+      font-size: 26px;
+      font-weight: bold;
+    }
+
+    .progress {
+      height: 10px;
+      background: #303546;
+      border-radius: 20px;
+      overflow: hidden;
+      margin-top: 15px;
+    }
+
+    .progress div {
+      height: 100%;
+      width: 0;
+      background: #f5a623;
+      transition: width .4s ease;
+    }
+
+    .links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .links a {
+      color: #f5a623;
+      text-decoration: none;
+      padding: 8px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 12px 8px;
+      border-bottom: 1px solid #303546;
+    }
+
+    .table-wrap { overflow-x: auto; }
+
+    @media (max-width: 550px) {
+      main { width: 92%; margin-top: 22px; }
+      .card { padding: 17px; }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="brand">◈ Smart Finance System</div>
+    <div>
+      <button type="button" id="refresh-button">Refresh</button>
+      <button type="button" id="logout-button">Logout</button>
+    </div>
+  </header>
+
+  <main>
+    <h1 id="greet">Welcome!</h1>
+    <p class="muted" id="user-email">Loading your account...</p>
+
+    <div id="status" class="message" role="status" aria-live="polite">
+      Loading your financial dashboard...
+    </div>
+
+    <section class="grid">
+      <article class="card">
+        <h3>Monthly Income</h3>
+        <p class="amount" id="kpi-income">—</p>
+      </article>
+
+      <article class="card">
+        <h3>Monthly Expenses</h3>
+        <p class="amount" id="kpi-exp">—</p>
+      </article>
+
+      <article class="card">
+        <h3>Monthly Savings</h3>
+        <p class="amount" id="kpi-save">—</p>
+      </article>
+
+      <article class="card">
+        <h3>Estimated Annual Tax</h3>
+        <p class="amount" id="kpi-tax">—</p>
+        <p class="muted">Estimate only, not an official tax calculation.</p>
+      </article>
+    </section>
+
+    <section class="grid">
+      <article class="card">
+        <h3>Financial Health Score</h3>
+        <p class="amount"><span id="score-num">0</span>/100</p>
+        <div class="progress">
+          <div id="score-bar"></div>
+        </div>
+        <p class="muted" id="score-description">
+          Your score will appear here.
+        </p>
+      </article>
+
+      <article class="card">
+        <h3>Your Savings Rank</h3>
+        <p class="rank" id="rank-name">Calculating...</p>
+        <p class="muted" id="rank-description">
+          Your rank is based on your savings and spending.
+        </p>
+      </article>
+    </section>
+
+    <section class="card section">
+      <h2>Expense Breakdown</h2>
+      <div id="category-list" class="muted">
+        No expense data loaded yet.
+      </div>
+    </section>
+
+    <section class="card section">
+      <h2>Recent Expenses</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Category</th>
+              <th>Note</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody id="recent-expenses">
+            <tr>
+              <td colspan="4">No expenses loaded yet.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card section">
+      <h2>Finance Tools</h2>
+      <p class="muted">Continue managing your personal finances.</p>
+      <div class="links">
+        <a href="../index.html">Home</a>
+        <a href="expenses.html">Expense Tracker</a>
+        <a href="tax.html">Tax Calculator</a>
+        <a href="investments.html">Investment Planner</a>
+        <a href="schemes.html">Government Schemes</a>
+        <a href="chatbot.html">Finance Assistant</a>
+      </div>
+    </section>
+  </main>
+
+  <script src="../js/main.js"></script>
+
+  <script>
+    const $ = id => document.getElementById(id);
+
+    function showStatus(message, isError = false) {
+      const element = $("status");
+      element.textContent = message;
+      element.className = "message" + (isError ? " error" : "");
+    }
+
+    function formatMoney(value) {
+      const number = Number(value);
+      if (!Number.isFinite(number)) return "₹0";
+
+      return number.toLocaleString("en-IN", {
+        style: "currency",
+        currency: "INR",
+        maximumFractionDigits: 2
+      });
+    }
+
+    function addTextCell(row, value) {
+      const cell = document.createElement("td");
+      cell.textContent = value == null ? "" : String(value);
+      row.appendChild(cell);
+    }
+
+    function updateRank(score, income, savings) {
+      let rank;
+      let description;
+
+      if (income <= 0) {
+        rank = "Starter";
+        description = "Add your monthly income to begin tracking your progress.";
+      } else if (savings < 0) {
+        rank = "Needs Improvement";
+        description = "Your expenses exceed your income. Try reducing unnecessary spending.";
+      } else if (score >= 50) {
+        rank = "Diamond";
+        description = "Excellent savings rate. Keep your spending under control.";
+      } else if (score >= 30) {
+        rank = "Gold";
+        description = "Good progress. Keep building your savings.";
+      } else if (score >= 15) {
+        rank = "Silver";
+        description = "You're saving some money. Try to improve your savings rate.";
+      } else {
+        rank = "Bronze";
+        description = "Start with small savings goals and review your expenses.";
+      }
+
+      $("rank-name").textContent = rank;
+      $("rank-description").textContent = description;
+    }
+
+    async function loadDashboard() {
+      let user;
+
+      try {
+        user = getUser();
+      } catch (error) {
+        console.error("Unable to read login session:", error);
+      }
+
+      if (!user || !user.email) {
+        showStatus(
+          "No login session found. Please log in again.",
+          true
+        );
+        $("user-email").textContent = "";
+        return;
+      }
+
+      $("greet").textContent = "Welcome, " + (user.name || "User") + "!";
+      $("user-email").textContent = user.email;
+      showStatus("Loading your financial information...");
+
+      try {
+        const data = await api(
+          "/api/dashboard?email=" + encodeURIComponent(user.email)
+        );
+
+        if (!data || data.account_found === false || data.error) {
+          throw new Error(data?.error || "Your account could not be found.");
+        }
+
+        $("greet").textContent = "Welcome, " + (data.name || user.name || "User") + "!";
+        $("user-email").textContent = data.email || user.email;
+
+        $("kpi-income").textContent = formatMoney(data.monthly_income);
+        $("kpi-exp").textContent = formatMoney(data.monthly_expenses);
+        $("kpi-save").textContent = formatMoney(data.monthly_savings);
+        $("kpi-tax").textContent = formatMoney(data.annual_tax_estimate);
+
+        const score = Math.max(
+          0,
+          Math.min(100, Number(data.financial_score) || 0)
+        );
+
+        $("score-num").textContent = score;
+        $("score-bar").style.width = score + "%";
+        $("score-description").textContent =
+          score >= 50
+            ? "Great savings progress!"
+            : "Track expenses and work toward a stronger savings rate.";
+
+        updateRank(
+          score,
+          Number(data.monthly_income) || 0,
+          Number(data.monthly_savings) || 0
+        );
+
+        // Expense category list
+        const categoryList = $("category-list");
+        categoryList.replaceChildren();
+
+        const categories = Object.entries(data.expense_by_category || {});
+
+        if (categories.length === 0) {
+          categoryList.textContent =
+            "No expenses yet. Your new account is ready! Add an expense to start tracking.";
+        } else {
+          categories.forEach(([category, amount]) => {
+            const line = document.createElement("p");
+            line.textContent = category + ": " + formatMoney(amount);
+            categoryList.appendChild(line);
+          });
+        }
+
+        // Recent expenses table
+        const tbody = $("recent-expenses");
+        tbody.replaceChildren();
+
+        const expenses = data.recent_expenses || [];
+
+        if (expenses.length === 0) {
+          const row = document.createElement("tr");
+          const cell = document.createElement("td");
+          cell.colSpan = 4;
+          cell.textContent = "No expenses recorded yet.";
+          row.appendChild(cell);
+          tbody.appendChild(row);
+        } else {
+          expenses.forEach(expense => {
+            const row = document.createElement("tr");
+            addTextCell(row, expense.date);
+            addTextCell(row, expense.category);
+            addTextCell(row, expense.note);
+            addTextCell(row, formatMoney(expense.amount));
+            tbody.appendChild(row);
+          });
+        }
+
+        showStatus("Your dashboard loaded successfully.");
+        $("status").className = "message success";
+
+      } catch (error) {
+        console.error("Dashboard loading error:", error);
+        showStatus(
+          error.message || "Unable to load your dashboard. Please try again.",
+          true
+        );
       }
     }
 
-    const scoreElement = document.getElementById("score-num");
+    $("refresh-button").addEventListener("click", loadDashboard);
 
-    if (scoreElement) {
-      scoreElement.textContent = d.financial_score ?? 0;
-    }
+    $("logout-button").addEventListener("click", function () {
+      sessionStorage.removeItem("fp_user");
+      window.location.replace("login.html");
+    });
 
-    console.log("Dashboard loaded for:", user.email);
-  } catch (error) {
-    console.error("Dashboard loading error:", error);
-
-    for (const id of [
-      "kpi-income", "kpi-exp", "kpi-save", "kpi-tax"
-    ]) {
-      const element = document.getElementById(id);
-      if (element) element.textContent = "Unavailable";
-    }
-
-    const insights = document.getElementById("insights-list");
-
-    if (insights) {
-      insights.textContent =
-        "Unable to load your financial data. Please try again.";
-    }
-  }
-}
-
-loadDashboard();
-</script>
+    loadDashboard();
+  </script>
+</body>
+</html>
