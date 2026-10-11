@@ -1,85 +1,183 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Register – FinPilot</title>
-  <link rel="stylesheet" href="../css/style.css"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Create Account - Smart Finance System</title>
+
+  <link rel="stylesheet" href="../css/style.css">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 </head>
+
 <body>
-<div class="auth-page">
-  <div class="orb orb-1" style="position:fixed"></div>
-  <div class="orb orb-2" style="position:fixed"></div>
-  <div class="auth-card" style="max-width:500px">
-    <div style="margin-bottom:1.5rem">
-      <a href="../index.html" style="color:var(--accent);font-family:var(--font-head);font-size:1.2rem;text-decoration:none">◈ FinPilot</a>
-    </div>
-    <h2>Create Account</h2>
-    <p>Your free digital CA – takes 2 minutes</p>
-    <div id="msg" class="alert" style="display:none"></div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>Full Name</label>
-        <input type="text" id="name" placeholder="Ravi Kumar"/>
+  <main class="auth-page">
+    <div class="orb orb-1" style="position:fixed"></div>
+    <div class="orb orb-2" style="position:fixed"></div>
+
+    <section class="auth-card" style="max-width:500px">
+      <div style="margin-bottom:1.5rem">
+        <a href="../index.html"
+           style="color:var(--accent);font-family:var(--font-head);font-size:1.2rem;text-decoration:none">
+          ◈ Smart Finance System
+        </a>
       </div>
-      <div class="form-group">
-        <label>Email</label>
-        <input type="email" id="email" placeholder="ravi@email.com"/>
+
+      <h2>Create Account</h2>
+      <p>Start managing your money with your own financial dashboard.</p>
+
+      <div id="msg" class="alert" style="display:none" role="alert"></div>
+
+      <form id="register-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="name">Full Name</label>
+            <input id="name" type="text" placeholder="Your full name"
+                   autocomplete="name" required>
+          </div>
+
+          <div class="form-group">
+            <label for="email">Email Address</label>
+            <input id="email" type="email" placeholder="you@example.com"
+                   autocomplete="email" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input id="password" type="password"
+                   placeholder="At least 6 characters"
+                   autocomplete="new-password" minlength="6" required>
+          </div>
+
+          <div class="form-group">
+            <label for="age">Age</label>
+            <input id="age" type="number" min="18" max="120"
+                   placeholder="Your age" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="income">Monthly Income (₹)</label>
+            <input id="income" type="number" min="0" step="0.01"
+                   placeholder="30000" required>
+          </div>
+
+          <div class="form-group">
+            <label for="risk">Investment Risk Preference</label>
+            <select id="risk" required>
+              <option value="conservative">Conservative</option>
+              <option value="moderate" selected>Moderate</option>
+              <option value="aggressive">Aggressive</option>
+            </select>
+          </div>
+        </div>
+
+        <button id="register-button" class="btn-primary"
+                type="submit"
+                style="width:100%;padding:.85rem;margin-top:.5rem">
+          Create Account →
+        </button>
+      </form>
+
+      <div class="auth-link">
+        Already have an account?
+        <a href="login.html">Log in</a>
       </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>Password</label>
-        <input type="password" id="password" placeholder="Min 6 characters"/>
-      </div>
-      <div class="form-group">
-        <label>Age</label>
-        <input type="number" id="age" placeholder="28" min="18" max="80"/>
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>Monthly Income (₹)</label>
-        <input type="number" id="income" placeholder="45000"/>
-      </div>
-      <div class="form-group">
-        <label>Risk Appetite</label>
-        <select id="risk">
-          <option value="conservative">Conservative</option>
-          <option value="moderate" selected>Moderate</option>
-          <option value="aggressive">Aggressive</option>
-        </select>
-      </div>
-    </div>
-    <button class="btn-primary" style="width:100%;padding:.85rem;margin-top:.5rem" onclick="doRegister()">Create Account →</button>
-    <div class="auth-link">
-      Already have an account? <a href="login.html">Login</a>
-    </div>
-  </div>
-</div>
-<script src="../js/main.js"></script>
-<script>
-async function doRegister() {
-  const fields = { name:'name', email:'email', password:'password', age:'age', income:'income', risk:'risk' };
-  const data = {};
-  for (const [k,id] of Object.entries(fields)) {
-    data[k] = document.getElementById(id).value.trim();
-    if (!data[k]) { showAlert('msg', `Please fill in: ${id}`, 'error'); return; }
-  }
-  if (data.password.length < 6) { showAlert('msg','Password must be 6+ characters','error'); return; }
-  try {
-    const r = await api('/register','POST', data);
-    if (r.error) { showAlert('msg', r.error, 'error'); return; }
-    setUser({ name: r.name, email: data.email });
-    showAlert('msg', `Welcome, ${r.name}! Redirecting...`, 'success');
-    setTimeout(() => window.location.href = 'dashboard.html', 1500);
-  } catch(e) {
-    // Demo mode fallback
-    setUser({ name: data.name, email: data.email });
-    showAlert('msg','Demo mode: server not running. Redirecting...','info');
-    setTimeout(() => window.location.href = 'dashboard.html', 1500);
-  }
-}
-</script>
+    </section>
+  </main>
+
+  <script src="../js/main.js"></script>
+
+  <script>
+    const registerForm = document.getElementById("register-form");
+    const registerButton = document.getElementById("register-button");
+    const messageBox = document.getElementById("msg");
+
+    registerForm.addEventListener("submit", async function (event) {
+      event.preventDefault();
+
+      messageBox.style.display = "none";
+
+      const name = document.getElementById("name").value.trim();
+      const email = document.getElementById("email").value.trim().toLowerCase();
+      const password = document.getElementById("password").value;
+      const age = Number(document.getElementById("age").value);
+      const income = Number(document.getElementById("income").value);
+      const risk = document.getElementById("risk").value;
+
+      if (!name || !email || !password) {
+        showAlert("msg", "Please complete all required fields.", "error");
+        return;
+      }
+
+      if (password.length < 6) {
+        showAlert("msg", "Password must contain at least 6 characters.", "error");
+        return;
+      }
+
+      if (!Number.isInteger(age) || age < 18 || age > 120) {
+        showAlert("msg", "Please enter a valid age between 18 and 120.", "error");
+        return;
+      }
+
+      if (!Number.isFinite(income) || income < 0) {
+        showAlert("msg", "Please enter a valid monthly income.", "error");
+        return;
+      }
+
+      registerButton.disabled = true;
+      registerButton.textContent = "Creating account...";
+
+      try {
+        // Register the new user in the PostgreSQL database.
+        const result = await api("/api/register", "POST", {
+          name,
+          email,
+          password,
+          age,
+          income,
+          risk
+        });
+
+        if (!result || !result.email || !result.name) {
+          throw new Error("The server did not confirm account creation.");
+        }
+
+        // Save only the account information returned by the backend.
+        setUser({
+          name: result.name,
+          email: result.email,
+          income: result.income,
+          age: result.age,
+          risk: result.risk
+        });
+
+        showAlert(
+          "msg",
+          "Registration successful! Opening your dashboard...",
+          "success"
+        );
+
+        // No fake account and no demo-mode fallback.
+        window.location.replace("dashboard.html");
+
+      } catch (error) {
+        console.error("Registration failed:", error);
+
+        showAlert(
+          "msg",
+          error.message || "Unable to create your account. Please try again.",
+          "error"
+        );
+
+      } finally {
+        registerButton.disabled = false;
+        registerButton.textContent = "Create Account →";
+      }
+    });
+  </script>
 </body>
 </html>
