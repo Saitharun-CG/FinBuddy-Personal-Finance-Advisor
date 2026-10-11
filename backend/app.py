@@ -9,15 +9,26 @@ import hashlib
 import datetime
 import random
 
+
 app = Flask(__name__)
 
-CORS(app, resources={
-    r"/api/*": {
-        "origins": [
-            "https://finbuddy-frontend.onrender.com"
-        ]
-    }
-})
+FRONTEND_ORIGIN = os.getenv(
+    "FRONTEND_ORIGIN",
+    "https://finbuddy-frontend.onrender.com"
+).rstrip("/")
+
+CORS(
+    app,
+    resources={
+        r"/*": {
+            "origins": [FRONTEND_ORIGIN]
+        }
+    },
+    methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
+    supports_credentials=False,
+    max_age=600
+)
 
 # -------------------- DATABASE --------------------
 
