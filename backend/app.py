@@ -1,411 +1,981 @@
-from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS
-import json, os, hashlib, datetime
 
-app = Flask(__name__, static_folder='static')
+import os
+import random
+import hashlib
+import hmac
+import datetime
+from contextlib import closing
+from decimal import Decimal
+
+import psycopg2
+from psycopg2.extras import RealDictCursor
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+from werkzeug.exceptions import HTTPException
+
+app = Flask(__name__)
+
+FRONTEND_ORIGIN = os.environ.get(
+    "FRONTEND_ORIGIN",
+    "https://finbuddy-frontend.onrender.com"
+)
 
 CORS(app, resources={
-    r"/api/*": {
-        "origins": [
-            "https://finbuddy-frontend.onrender.com"
-        ]
-    }
+    r"/api/*": {"origins": [FRONTEND_ORIGIN]}
 })
-def home():
-    return jsonify({
-        'app': 'FinBuddy Personal Finance Advisor',
-        'status': 'running',
-        'message': 'Backend API is working!'
-    })
 
-# ── In-memory DB (replace with SQLite/MySQL for production) ──────────────────
-DB = {
-    "users": {},        # email → {name, email, password_hash, income, age, risk}
-    "expenses": {},     # email → [{category, amount, date, note}]
-    "investments": {},  # email → [{type, amount, date}]
-    "taxes": {},        # email → [{income, tax, regime, year}]
-}
 
-# ── HELPERS ──────────────────────────────────────────────────────────────────
-def hash_pw(pw):
-    return hashlib.sha256(pw.encode()).hexdigest()
+# =========================================================
+# DATABASE CONNECTION
+# =========================================================
+
+def get_connection():
+    database_url = os.environ.get("DATABASE_URL")
+
+    if not database_url:
+        raise RuntimeError("DATABASE_URL is not configured")
+
+    return psycopg2.connect(
+        database_url,
+        sslmode=os.environ.get("DB_SSLMODE", "require")
+    )
+
+
+def query_one(sql, params=()):
+    with closing(get_connection()) as conn:
+        with conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(sql, params)
+                row = cur.fetchone()
+                return dict(row) if row else None
+
+
+def query_all(sql, params=()):
+    with closing(get_connection()) as conn:
+        with conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(sql, params)
+                return [dict(row) for row in cur.fetchall()]
+
+
+def execute(sql, params=(), returning=False):
+    with closing(get_connection()) as conn:
+        with conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(sql, params)
+                row = cur.fetchone() if returning else None
+                return dict(row) if row else None
+
+
+def json_safe(value):
+    if isinstance(value, Decimal):
+        return float(value)
+
+    if isinstance(value, (datetime.date, datetime.datetime)):
+        return value.isoformat()
+
+    if isinstance(value, dict):
+        return {k: json_safe(v) for k, v in value.items()}
+
+    if isinstance(value, list):
+        return [json_safe(v) for v in value]
+
+    return value
+
+
+def request_data():
+    return request.get_json(silent=True) or {}
+
 
 def today():
     return datetime.date.today().isoformat()
 
-# ════════════════════════════════════════════════════════════════════════════
-#  AUTH
-# ════════════════════════════════════════════════════════════════════════════
-@app.route('/api/register', methods=['POST'])
-def register():
-    d = request.json
-    email = d.get('email', '').lower()
-    if email in DB['users']:
-        return jsonify({'error': 'Email already registered'}), 400
-    DB['users'][email] = {
-        'name': d['name'],
-        'email': email,
-        'password': hash_pw(d['password']),
-        'income': float(d.get('income', 0)),
-        'age': int(d.get('age', 25)),
-        'risk': d.get('risk', 'moderate')
-    }
-    DB['expenses'][email] = []
-    DB['investments'][email] = []
-    DB['taxes'][email] = []
-    return jsonify({'message': 'Registered successfully', 'name': d['name']})
 
-@app.route('/api/login', methods=['POST'])
-def login():
-    d = request.json
-    email = d.get('email', '').lower()
-    user = DB['users'].get(email)
-    if not user or user['password'] != hash_pw(d['password']):
-        return jsonify({'error': 'Invalid credentials'}), 401
-    return jsonify({'message': 'Login successful', 'name': user['name'], 'email': email})
+def get_user(email):
+    return query_one(
+        """SELECT user_id, name, email, password, age,
+                  monthly_income, risk_appetite
+           FROM users WHERE email = %s""",
+        (email,)
+    )
 
-@app.route('/api/profile', methods=['GET'])
-def profile():
-    email = request.args.get('email', '').lower()
-    user = DB['users'].get(email)
-    if not user:
-        return jsonify({'error': 'Not found'}), 404
-    u = dict(user)
-    u.pop('password')
-    return jsonify(u)
 
-# ════════════════════════════════════════════════════════════════════════════
-#  EXPENSES
-# ════════════════════════════════════════════════════════════════════════════
-@app.route('/api/expenses', methods=['GET'])
-def get_expenses():
-    email = request.args.get('email', '').lower()
-    return jsonify(DB['expenses'].get(email, []))
+def hash_password(password):
+    salt = os.urandom(16)
+    iterations = 260000
 
-@app.route('/api/expenses', methods=['POST'])
-def add_expense():
-    d = request.json
-    email = d['email'].lower()
-    entry = {
-        'id': len(DB['expenses'].get(email, [])) + 1,
-        'category': d['category'],
-        'amount': float(d['amount']),
-        'note': d.get('note', ''),
-        'date': d.get('date', today())
-    }
-    DB['expenses'].setdefault(email, []).append(entry)
-    return jsonify({'message': 'Expense added', 'entry': entry})
+    digest = hashlib.pbkdf2_hmac(
+        "sha256",
+        password.encode("utf-8"),
+        salt,
+        iterations
+    )
 
-@app.route('/api/expenses/<int:exp_id>', methods=['DELETE'])
-def delete_expense(exp_id):
-    email = request.args.get('email', '').lower()
-    DB['expenses'][email] = [e for e in DB['expenses'].get(email, []) if e['id'] != exp_id]
-    return jsonify({'message': 'Deleted'})
+    return (
+        f"pbkdf2_sha256${iterations}$"
+        f"{salt.hex()}${digest.hex()}"
+    )
 
-@app.route('/api/expenses/summary', methods=['GET'])
-def expense_summary():
-    email = request.args.get('email', '').lower()
-    expenses = DB['expenses'].get(email, [])
-    user = DB['users'].get(email, {})
-    income = user.get('income', 0)
 
-    total = sum(e['amount'] for e in expenses)
-    by_cat = {}
-    for e in expenses:
-        by_cat[e['category']] = by_cat.get(e['category'], 0) + e['amount']
+def verify_password(password, stored):
+    # Current secure password format
+    if stored.startswith("pbkdf2_sha256$"):
+        try:
+            _, iterations, salt, expected = stored.split("$", 3)
 
-    savings = income - total
-    score = max(0, min(100, int((savings / income * 100) if income else 0)))
+            actual = hashlib.pbkdf2_hmac(
+                "sha256",
+                password.encode("utf-8"),
+                bytes.fromhex(salt),
+                int(iterations)
+            ).hex()
 
-    insights = []
-    for cat, amt in by_cat.items():
-        pct = (amt / income * 100) if income else 0
-        limits = {'Food': 25, 'Rent': 30, 'Entertainment': 10, 'Travel': 10}
-        if cat in limits and pct > limits[cat]:
-            insights.append(f"You spend {pct:.0f}% on {cat}. Recommended: ≤{limits[cat]}%.")
+            return hmac.compare_digest(actual, expected), None
 
+        except (ValueError, TypeError):
+            return False, None
+
+    # Compatibility with passwords from the previous SHA-256 version.
+    old_hash = hashlib.sha256(
+        password.encode("utf-8")
+    ).hexdigest()
+
+    if hmac.compare_digest(old_hash, stored):
+        return True, hash_password(password)
+
+    return False, None
+
+
+@app.errorhandler(Exception)
+def handle_error(error):
+    if isinstance(error, HTTPException):
+        return error
+
+    app.logger.exception("Backend error")
     return jsonify({
-        'total_expenses': total,
-        'savings': savings,
-        'by_category': by_cat,
-        'financial_score': score,
-        'insights': insights
+        "error": "Internal server error. Check Render logs."
+    }), 500
+
+
+# =========================================================
+# HOME AND HEALTH CHECK
+# =========================================================
+
+@app.route("/", methods=["GET"])
+def home():
+    return jsonify({
+        "app": "FinBuddy Personal Finance Advisor",
+        "status": "running",
+        "message": "Backend API is working!"
     })
 
-# ════════════════════════════════════════════════════════════════════════════
-#  TAX CALCULATOR
-# ════════════════════════════════════════════════════════════════════════════
+
+@app.route("/api/health", methods=["GET"])
+def health():
+    try:
+        query_one("SELECT 1 AS result")
+
+        return jsonify({
+            "status": "healthy",
+            "database": "connected"
+        })
+
+    except Exception:
+        app.logger.exception("Database health check failed")
+
+        return jsonify({
+            "status": "unhealthy",
+            "database": "disconnected"
+        }), 503
+
+
+# =========================================================
+# USER REGISTRATION
+# =========================================================
+
+@app.route("/api/register", methods=["POST"])
+def register():
+    data = request_data()
+
+    name = str(data.get("name", "")).strip()
+    email = str(data.get("email", "")).strip().lower()
+    password = str(data.get("password", ""))
+
+    if not name or not email or not password:
+        return jsonify({
+            "error": "Name, email and password are required"
+        }), 400
+
+    if len(password) < 8:
+        return jsonify({
+            "error": "Password must contain at least 8 characters"
+        }), 400
+
+    try:
+        age = int(data.get("age", 25))
+        income = float(
+            data.get("income", data.get("monthly_income", 0)) or 0
+        )
+        risk = data.get(
+            "risk", data.get("risk_appetite", "moderate")
+        )
+
+        if age < 1 or age > 120 or income < 0:
+            raise ValueError()
+
+        if risk not in ("conservative", "moderate", "aggressive"):
+            return jsonify({"error": "Invalid risk profile"}), 400
+
+    except (ValueError, TypeError):
+        return jsonify({"error": "Invalid registration details"}), 400
+
+    try:
+        user = execute(
+            """INSERT INTO users
+               (name, email, password, age,
+                monthly_income, risk_appetite)
+               VALUES (%s, %s, %s, %s, %s, %s)
+               RETURNING user_id""",
+            (
+                name, email, hash_password(password),
+                age, income, risk
+            ),
+            returning=True
+        )
+
+        return jsonify({
+            "message": "Registered successfully",
+            "name": name,
+            "user_id": user["user_id"]
+        }), 201
+
+    except psycopg2.errors.UniqueViolation:
+        return jsonify({
+            "error": "Email already registered"
+        }), 400
+
+
+# =========================================================
+# USER LOGIN
+# =========================================================
+
+@app.route("/api/login", methods=["POST"])
+def login():
+    data = request_data()
+
+    email = str(data.get("email", "")).strip().lower()
+    password = str(data.get("password", ""))
+
+    user = get_user(email)
+
+    if not user:
+        return jsonify({"error": "Invalid credentials"}), 401
+
+    valid, upgraded_hash = verify_password(
+        password, user["password"]
+    )
+
+    if not valid:
+        return jsonify({"error": "Invalid credentials"}), 401
+
+    if upgraded_hash:
+        execute(
+            "UPDATE users SET password = %s WHERE user_id = %s",
+            (upgraded_hash, user["user_id"])
+        )
+
+    return jsonify({
+        "message": "Login successful",
+        "name": user["name"],
+        "email": email
+    })
+
+
+# =========================================================
+# USER PROFILE
+# =========================================================
+
+@app.route("/api/profile", methods=["GET"])
+def profile():
+    email = request.args.get("email", "").strip().lower()
+    user = get_user(email)
+
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    user.pop("password", None)
+
+    user["income"] = float(user["monthly_income"] or 0)
+    user["monthly_income"] = float(user["monthly_income"] or 0)
+    user["risk"] = user["risk_appetite"]
+
+    return jsonify(json_safe(user))
+
+
+# =========================================================
+# EXPENSE TRACKER
+# =========================================================
+
+@app.route("/api/expenses", methods=["GET"])
+def get_expenses():
+    email = request.args.get("email", "").strip().lower()
+
+    user = query_one(
+        "SELECT user_id FROM users WHERE email = %s",
+        (email,)
+    )
+
+    if not user:
+        return jsonify([])
+
+    expenses = query_all(
+        """SELECT expense_id AS id, category, amount,
+                  note, expense_date AS date
+           FROM expenses
+           WHERE user_id = %s
+           ORDER BY expense_date, expense_id""",
+        (user["user_id"],)
+    )
+
+    return jsonify(json_safe(expenses))
+
+
+@app.route("/api/expenses", methods=["POST"])
+def add_expense():
+    data = request_data()
+
+    email = str(data.get("email", "")).strip().lower()
+    category = str(data.get("category", "")).strip()
+
+    try:
+        amount = float(data.get("amount"))
+        expense_date = data.get("date") or today()
+        datetime.date.fromisoformat(expense_date)
+
+        if amount <= 0 or not category:
+            raise ValueError()
+
+    except (ValueError, TypeError):
+        return jsonify({
+            "error": "Enter a valid category, amount and date"
+        }), 400
+
+    user = query_one(
+        "SELECT user_id FROM users WHERE email = %s",
+        (email,)
+    )
+
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    expense = execute(
+        """INSERT INTO expenses
+           (user_id, category, amount, note, expense_date)
+           VALUES (%s, %s, %s, %s, %s)
+           RETURNING expense_id AS id, category, amount,
+                     note, expense_date AS date""",
+        (
+            user["user_id"], category, amount,
+            str(data.get("note", "")), expense_date
+        ),
+        returning=True
+    )
+
+    return jsonify({
+        "message": "Expense added",
+        "entry": json_safe(expense)
+    }), 201
+
+
+@app.route("/api/expenses/<int:expense_id>", methods=["DELETE"])
+def delete_expense(expense_id):
+    email = request.args.get("email", "").strip().lower()
+
+    user = query_one(
+        "SELECT user_id FROM users WHERE email = %s",
+        (email,)
+    )
+
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    deleted = execute(
+        """DELETE FROM expenses
+           WHERE expense_id = %s AND user_id = %s
+           RETURNING expense_id""",
+        (expense_id, user["user_id"]),
+        returning=True
+    )
+
+    if not deleted:
+        return jsonify({"error": "Expense not found"}), 404
+
+    return jsonify({"message": "Deleted successfully"})
+
+
+# =========================================================
+# EXPENSE SUMMARY AND SAVINGS SCORE
+# =========================================================
+
+def build_expense_summary(email):
+    user = query_one(
+        """SELECT user_id, monthly_income
+           FROM users WHERE email = %s""",
+        (email,)
+    )
+
+    if not user:
+        return None
+
+    expenses = query_all(
+        """SELECT category, amount FROM expenses
+           WHERE user_id = %s""",
+        (user["user_id"],)
+    )
+
+    income = float(user["monthly_income"] or 0)
+    total = sum(float(e["amount"]) for e in expenses)
+
+    by_category = {}
+
+    for expense in expenses:
+        category = expense["category"]
+        by_category[category] = (
+            by_category.get(category, 0)
+            + float(expense["amount"])
+        )
+
+    savings = income - total
+
+    score = max(
+        0,
+        min(100, int(savings / income * 100) if income else 0)
+    )
+
+    limits = {
+        "Food": 25,
+        "Rent": 30,
+        "Entertainment": 10,
+        "Travel": 10
+    }
+
+    insights = []
+
+    for category, amount in by_category.items():
+        percentage = amount / income * 100 if income else 0
+
+        if category in limits and percentage > limits[category]:
+            insights.append(
+                f"You spend {percentage:.0f}% on {category}. "
+                f"Recommended: at most {limits[category]}%."
+            )
+
+    return {
+        "total_expenses": total,
+        "savings": savings,
+        "by_category": by_category,
+        "financial_score": score,
+        "insights": insights
+    }
+
+
+@app.route("/api/expenses/summary", methods=["GET"])
+def expense_summary():
+    email = request.args.get("email", "").strip().lower()
+    summary = build_expense_summary(email)
+
+    if summary is None:
+        return jsonify({"error": "User not found"}), 404
+
+    return jsonify(json_safe(summary))
+
+
+# =========================================================
+# TAX CALCULATOR
+# =========================================================
+
 def calc_old_regime(income, ded_80c, ded_80d, hra, other_ded):
-    taxable = max(0, income - ded_80c - ded_80d - hra - other_ded)
+    taxable = max(
+        0, income - ded_80c - ded_80d - hra - other_ded
+    )
+
     tax = 0
-    slabs = [(250000, 0), (250000, 0.05), (500000, 0.20), (float('inf'), 0.30)]
+
+    slabs = [
+        (250000, 0),
+        (250000, 0.05),
+        (500000, 0.20),
+        (float("inf"), 0.30)
+    ]
+
     remaining = taxable
+
     for slab, rate in slabs:
         chunk = min(remaining, slab)
         tax += chunk * rate
         remaining -= chunk
+
         if remaining <= 0:
             break
+
     return taxable, round(tax)
+
 
 def calc_new_regime(income):
     tax = 0
-    slabs = [(300000, 0), (300000, 0.05), (300000, 0.10),
-             (300000, 0.15), (300000, 0.20), (float('inf'), 0.30)]
-    remaining = income
+
+    slabs = [
+        (300000, 0),
+        (300000, 0.05),
+        (300000, 0.10),
+        (300000, 0.15),
+        (300000, 0.20),
+        (float("inf"), 0.30)
+    ]
+
+    remaining = max(0, income)
+
     for slab, rate in slabs:
         chunk = min(remaining, slab)
         tax += chunk * rate
         remaining -= chunk
+
         if remaining <= 0:
             break
+
     return round(tax)
 
-@app.route('/api/tax/calculate', methods=['POST'])
-def calculate_tax():
-    d = request.json
-    income = float(d.get('income', 0))
-    ded_80c = min(float(d.get('ded_80c', 0)), 150000)
-    ded_80d = min(float(d.get('ded_80d', 0)), 25000)
-    hra = float(d.get('hra', 0))
-    other = float(d.get('other_ded', 0))
 
-    old_taxable, old_tax = calc_old_regime(income, ded_80c, ded_80d, hra, other)
+@app.route("/api/tax/calculate", methods=["POST"])
+def calculate_tax():
+    data = request_data()
+
+    try:
+        income = max(0, float(data.get("income", 0)))
+        ded_80c = min(
+            max(0, float(data.get("ded_80c", 0))), 150000
+        )
+        ded_80d = min(
+            max(0, float(data.get("ded_80d", 0))), 25000
+        )
+        hra = max(0, float(data.get("hra", 0)))
+        other = max(0, float(data.get("other_ded", 0)))
+
+    except (ValueError, TypeError):
+        return jsonify({"error": "Invalid tax input"}), 400
+
+    old_taxable, old_tax = calc_old_regime(
+        income, ded_80c, ded_80d, hra, other
+    )
+
     new_tax = calc_new_regime(income)
 
-    recommendation = "Old Regime" if old_tax <= new_tax else "New Regime"
-    savings = abs(old_tax - new_tax)
+    recommendation = (
+        "Old Regime" if old_tax <= new_tax else "New Regime"
+    )
 
     return jsonify({
-        'income': income,
-        'old_regime': {'taxable_income': old_taxable, 'tax': old_tax},
-        'new_regime': {'taxable_income': income, 'tax': new_tax},
-        'recommendation': recommendation,
-        'you_save': savings,
-        'effective_rate_old': round(old_tax / income * 100, 2) if income else 0,
-        'effective_rate_new': round(new_tax / income * 100, 2) if income else 0
+        "income": income,
+        "old_regime": {
+            "taxable_income": old_taxable,
+            "tax": old_tax
+        },
+        "new_regime": {
+            "taxable_income": income,
+            "tax": new_tax
+        },
+        "recommendation": recommendation,
+        "you_save": abs(old_tax - new_tax),
+        "effective_rate_old": (
+            round(old_tax / income * 100, 2) if income else 0
+        ),
+        "effective_rate_new": (
+            round(new_tax / income * 100, 2) if income else 0
+        )
     })
 
-# ════════════════════════════════════════════════════════════════════════════
-#  INVESTMENT PLANNER
-# ════════════════════════════════════════════════════════════════════════════
-@app.route('/api/investments/suggest', methods=['POST'])
+
+# =========================================================
+# INVESTMENT PLANNER
+# =========================================================
+
+@app.route("/api/investments/suggest", methods=["POST"])
 def suggest_investments():
-    d = request.json
-    income = float(d.get('income', 0))
-    risk = d.get('risk', 'moderate').lower()
-    age = int(d.get('age', 30))
-    savings = float(d.get('savings', income * 0.2))
+    data = request_data()
+
+    try:
+        income = max(0, float(data.get("income", 0)))
+        risk = str(data.get("risk", "moderate")).lower()
+        age = int(data.get("age", 30))
+        savings = max(
+            0, float(data.get("savings", income * 0.2))
+        )
+
+    except (ValueError, TypeError):
+        return jsonify({"error": "Invalid investment input"}), 400
 
     plans = {
-        'conservative': [
-            {'type': 'Fixed Deposit', 'pct': 40, 'return': '6-7%', 'reason': 'Safe guaranteed returns'},
-            {'type': 'PPF', 'pct': 30, 'return': '7.1%', 'reason': 'Tax-free, government backed'},
-            {'type': 'Sukanya Samriddhi / NSC', 'pct': 20, 'return': '7-8%', 'reason': 'High safety'},
-            {'type': 'Liquid Mutual Fund', 'pct': 10, 'return': '5-6%', 'reason': 'Emergency liquidity'},
+        "conservative": [
+            {
+                "type": "Fixed Deposit", "pct": 40,
+                "return": "6-7%",
+                "reason": "Lower-risk savings option"
+            },
+            {
+                "type": "PPF", "pct": 30,
+                "return": "Government-set rate",
+                "reason": "Long-term savings"
+            },
+            {
+                "type": "Sukanya Samriddhi / NSC", "pct": 20,
+                "return": "Variable",
+                "reason": "Government small-savings options"
+            },
+            {
+                "type": "Liquid Mutual Fund", "pct": 10,
+                "return": "Market-linked",
+                "reason": "Liquidity"
+            }
         ],
-        'moderate': [
-            {'type': 'SIP – Mutual Funds', 'pct': 35, 'return': '10-12%', 'reason': 'Wealth creation over time'},
-            {'type': 'PPF', 'pct': 25, 'return': '7.1%', 'reason': 'Tax saving + safety'},
-            {'type': 'Fixed Deposit', 'pct': 20, 'return': '6-7%', 'reason': 'Capital protection'},
-            {'type': 'NPS', 'pct': 10, 'return': '9-10%', 'reason': 'Retirement + extra 80CCD deduction'},
-            {'type': 'Emergency Fund', 'pct': 10, 'return': 'N/A', 'reason': '3-6 months expenses'},
+
+        "moderate": [
+            {
+                "type": "SIP – Mutual Funds", "pct": 35,
+                "return": "Market-linked",
+                "reason": "Long-term wealth creation"
+            },
+            {
+                "type": "PPF", "pct": 25,
+                "return": "Government-set rate",
+                "reason": "Long-term savings"
+            },
+            {
+                "type": "Fixed Deposit", "pct": 20,
+                "return": "Bank-specific",
+                "reason": "Capital protection subject to terms"
+            },
+            {
+                "type": "NPS", "pct": 10,
+                "return": "Market-linked",
+                "reason": "Retirement planning"
+            },
+            {
+                "type": "Emergency Fund", "pct": 10,
+                "return": "Not applicable",
+                "reason": "Emergency expenses"
+            }
         ],
-        'aggressive': [
-            {'type': 'Equity Mutual Funds / ELSS', 'pct': 50, 'return': '12-15%', 'reason': 'Maximum growth'},
-            {'type': 'Direct Stocks', 'pct': 20, 'return': 'Variable', 'reason': 'High-reward plays'},
-            {'type': 'SIP Flexi Cap', 'pct': 15, 'return': '12-14%', 'reason': 'Diversified equity'},
-            {'type': 'PPF', 'pct': 15, 'return': '7.1%', 'reason': 'Tax-free debt cushion'},
+
+        "aggressive": [
+            {
+                "type": "Equity Mutual Funds / ELSS", "pct": 50,
+                "return": "Market-linked",
+                "reason": "Long-term growth potential"
+            },
+            {
+                "type": "Direct Stocks", "pct": 20,
+                "return": "Variable",
+                "reason": "Higher risk"
+            },
+            {
+                "type": "SIP Flexi Cap", "pct": 15,
+                "return": "Market-linked",
+                "reason": "Diversified equity exposure"
+            },
+            {
+                "type": "PPF", "pct": 15,
+                "return": "Government-set rate",
+                "reason": "Long-term savings"
+            }
         ]
     }
 
-    plan = plans.get(risk, plans['moderate'])
+    plan = plans.get(risk, plans["moderate"])
     allocations = []
+
     for item in plan:
-        amount = round(savings * item['pct'] / 100)
-        future_10yr = round(amount * 12 * (((1 + 0.10) ** 10 - 1) / 0.10)) if 'SIP' in item['type'] or 'Equity' in item['type'] else round(amount * 12 * 10 * 1.07)
-        allocations.append({**item, 'monthly_amount': amount, 'projected_10yr': future_10yr})
+        amount = round(savings * item["pct"] / 100)
+
+        allocations.append({
+            **item,
+            "monthly_amount": amount,
+            "projected_10yr": None
+        })
 
     return jsonify({
-        'monthly_savings': savings,
-        'risk_profile': risk,
-        'allocations': allocations,
-        'tip': f"At age {age}, {'focus on growth assets' if age < 40 else 'shift gradually to safer instruments'}."
+        "monthly_savings": savings,
+        "risk_profile": risk,
+        "allocations": allocations,
+        "tip": (
+            "Focus on growth assets"
+            if age < 40
+            else "Consider balancing growth and lower-risk assets"
+        ),
+        "note": "Investment returns are not guaranteed."
     })
 
-# ════════════════════════════════════════════════════════════════════════════
-#  GOVERNMENT SCHEMES
-# ════════════════════════════════════════════════════════════════════════════
+
+# =========================================================
+# GOVERNMENT SCHEMES
+# =========================================================
+
 SCHEMES = [
     {
-        'name': 'PM Jan Dhan Yojana',
-        'category': 'Banking',
-        'benefit': 'Free savings account with ₹10,000 overdraft, ₹2L accident insurance',
-        'eligibility': 'Any Indian citizen without a bank account',
-        'income_max': 9999999,
-        'url': 'https://pmjdy.gov.in'
+        "name": "PM Jan Dhan Yojana",
+        "category": "Banking",
+        "benefit": "Basic bank account and eligible scheme benefits",
+        "eligibility": "Subject to official scheme rules",
+        "income_max": 9999999,
+        "url": "https://pmjdy.gov.in"
     },
     {
-        'name': 'Atal Pension Yojana (APY)',
-        'category': 'Pension',
-        'benefit': 'Guaranteed pension of ₹1000-₹5000/month after 60',
-        'eligibility': 'Age 18-40, has a savings bank account',
-        'income_max': 9999999,
-        'url': 'https://enps.nsdl.com/eNPS/NationalPensionSystem.html'
+        "name": "Atal Pension Yojana (APY)",
+        "category": "Pension",
+        "benefit": "Pension scheme subject to contribution and eligibility",
+        "eligibility": "Generally eligible subscribers aged 18-40",
+        "income_max": 9999999,
+        "url": "https://www.npscra.nsdl.co.in"
     },
     {
-        'name': 'PMJJBY – Life Insurance',
-        'category': 'Insurance',
-        'benefit': '₹2 lakh life cover at just ₹436/year',
-        'eligibility': 'Age 18-50, savings bank account',
-        'income_max': 9999999,
-        'url': 'https://jansuraksha.gov.in'
+        "name": "PMJJBY – Life Insurance",
+        "category": "Insurance",
+        "benefit": "Life insurance subject to current scheme terms",
+        "eligibility": "Eligible account holders aged 18-50",
+        "income_max": 9999999,
+        "url": "https://jansuraksha.gov.in"
     },
     {
-        'name': 'PMSBY – Accident Insurance',
-        'category': 'Insurance',
-        'benefit': '₹2 lakh accident cover at ₹20/year',
-        'eligibility': 'Age 18-70, savings bank account',
-        'income_max': 9999999,
-        'url': 'https://jansuraksha.gov.in'
+        "name": "PMSBY – Accident Insurance",
+        "category": "Insurance",
+        "benefit": "Accident insurance subject to current scheme terms",
+        "eligibility": "Eligible account holders aged 18-70",
+        "income_max": 9999999,
+        "url": "https://jansuraksha.gov.in"
     },
     {
-        'name': 'Sukanya Samriddhi Yojana',
-        'category': 'Savings',
-        'benefit': '8.2% interest, fully tax-free, for girl child education/marriage',
-        'eligibility': 'Parents of girl child below 10 years',
-        'income_max': 9999999,
-        'url': 'https://www.indiapost.gov.in/Financial/Pages/Content/Sukanya-Samridhi-Account.aspx'
+        "name": "Sukanya Samriddhi Yojana",
+        "category": "Savings",
+        "benefit": "Government small-savings scheme for eligible girl children",
+        "eligibility": "Subject to current India Post rules",
+        "income_max": 9999999,
+        "url": "https://www.indiapost.gov.in"
     },
     {
-        'name': 'PM Awas Yojana (Urban)',
-        'category': 'Housing',
-        'benefit': 'Interest subsidy of up to ₹2.67 lakh on home loan',
-        'eligibility': 'Annual income below ₹18 lakh, no pucca house',
-        'income_max': 1800000,
-        'url': 'https://pmaymis.gov.in'
+        "name": "PM Awas Yojana (Urban)",
+        "category": "Housing",
+        "benefit": "Housing assistance subject to current scheme rules",
+        "eligibility": "Subject to active scheme criteria",
+        "income_max": 1800000,
+        "url": "https://pmaymis.gov.in"
     },
     {
-        'name': 'National Pension System (NPS)',
-        'category': 'Pension',
-        'benefit': 'Extra ₹50,000 tax deduction under 80CCD(1B), market-linked returns',
-        'eligibility': 'Indian citizen age 18-70',
-        'income_max': 9999999,
-        'url': 'https://www.npscra.nsdl.co.in'
+        "name": "National Pension System (NPS)",
+        "category": "Pension",
+        "benefit": "Retirement savings subject to scheme and tax rules",
+        "eligibility": "Subject to current NPS rules",
+        "income_max": 9999999,
+        "url": "https://www.npscra.nsdl.co.in"
     },
     {
-        'name': 'Kisan Vikas Patra',
-        'category': 'Savings',
-        'benefit': 'Money doubles in ~115 months at 7.5% interest',
-        'eligibility': 'Any Indian adult',
-        'income_max': 9999999,
-        'url': 'https://www.indiapost.gov.in'
-    },
+        "name": "Kisan Vikas Patra",
+        "category": "Savings",
+        "benefit": "Government small-savings certificate",
+        "eligibility": "Subject to current India Post rules",
+        "income_max": 9999999,
+        "url": "https://www.indiapost.gov.in"
+    }
 ]
 
-@app.route('/api/schemes', methods=['GET'])
+
+@app.route("/api/schemes", methods=["GET"])
 def get_schemes():
-    income = float(request.args.get('income', 9999999))
-    category = request.args.get('category', '')
-    result = [s for s in SCHEMES if s['income_max'] >= income]
+    try:
+        income = float(request.args.get("income", 9999999))
+    except ValueError:
+        return jsonify({"error": "Invalid income"}), 400
+
+    category = request.args.get("category", "")
+
+    result = [
+        scheme for scheme in SCHEMES
+        if scheme["income_max"] >= income
+    ]
+
     if category:
-        result = [s for s in result if s['category'].lower() == category.lower()]
+        result = [
+            scheme for scheme in result
+            if scheme["category"].lower() == category.lower()
+        ]
+
     return jsonify(result)
 
-# ════════════════════════════════════════════════════════════════════════════
-#  AI CHATBOT
-# ════════════════════════════════════════════════════════════════════════════
+
+# =========================================================
+# FINANCIAL CHATBOT
+# =========================================================
+
 RESPONSES = {
-    'tax': [
-        "Under Section 80C you can save up to ₹1.5L by investing in PPF, ELSS, or paying LIC premium.",
-        "Compare Old vs New regime using our Tax Calculator — Old regime suits if deductions > ₹3.75L.",
-        "HRA exemption can significantly reduce taxable income if you pay rent.",
+    "tax": [
+        "Eligible investments and payments may qualify for deductions under the old tax regime.",
+        "Compare both tax regimes based on your income and eligible deductions.",
+        "HRA exemption may apply when you meet the relevant conditions."
     ],
-    'invest': [
-        "Follow the 50-30-20 rule: 50% needs, 30% wants, 20% savings & investment.",
-        "SIP in mutual funds with ₹2000/month for 15 years can grow to ~₹10 lakhs at 12% return.",
-        "For beginners: start with ELSS (tax saving + equity growth) or index funds.",
-        "PPF is the safest long-term investment — 7.1% tax-free, government guaranteed.",
+
+    "invest": [
+        "Plan your investments based on your goals, time horizon and risk tolerance.",
+        "SIP returns depend on market performance and are not guaranteed.",
+        "Understand the risks and fees before investing in mutual funds.",
+        "Consider an emergency fund before investing money you may need soon."
     ],
-    'budget': [
-        "Track every expense — small leaks sink great ships! Use our Expense Tracker.",
-        "Create a budget using the envelope method: label envelopes for each category.",
-        "Automate your savings — set up auto-debit on salary day before spending.",
+
+    "budget": [
+        "Track your expenses and review your spending every month.",
+        "Separate essential expenses from wants when creating your budget.",
+        "Set a realistic monthly savings target."
     ],
-    'save': [
-        "Build an emergency fund of 3-6 months of expenses before investing.",
-        "Cancel unused subscriptions and redirect that money to SIPs.",
-        "Cooking at home vs eating out can save ₹3,000-₹8,000/month for a family.",
+
+    "save": [
+        "Consider building an emergency fund for essential expenses.",
+        "Review unused subscriptions and recurring costs.",
+        "Compare your planned spending with your actual expenses."
     ],
-    'scheme': [
-        "PMJJBY gives ₹2L life cover at just ₹436/year — great for middle-class families!",
-        "Sukanya Samriddhi: 8.2% tax-free for your daughter's future.",
-        "APY gives guaranteed pension of ₹5000/month — enroll before age 40!",
+
+    "scheme": [
+        "Check the official scheme website for current eligibility and benefits.",
+        "Government scheme terms can change, so verify details before applying."
     ],
-    'loan': [
-        "Maintain a CIBIL score above 750 for best loan rates. Pay EMIs on time!",
-        "Avoid personal loans for consumption — use only for emergencies or education.",
-        "Home loan interest is deductible under Section 24 up to ₹2L per year.",
-    ],
-    'default': [
-        "I'm FinPilot AI 🤖. Ask me about tax saving, investment, budgeting, or government schemes!",
-        "Great question! Try using specific terms like 'tax', 'SIP', 'save', 'scheme', or 'loan'.",
+
+    "loan": [
+        "Pay EMIs on time and review your credit report regularly.",
+        "Compare interest rates, fees and total repayment costs before borrowing.",
+        "Choose loan repayments that fit your monthly budget."
     ]
 }
 
-@app.route('/api/chat', methods=['POST'])
+
+@app.route("/api/chat", methods=["POST"])
 def chat():
-    msg = request.json.get('message', '').lower()
-    reply = None
-    import random
+    message = str(
+        request_data().get("message", "")
+    ).lower()
 
-    if any(k in msg for k in ['tax', '80c', '80d', 'itr', 'regime', 'deduct']):
-        reply = random.choice(RESPONSES['tax'])
-    elif any(k in msg for k in ['invest', 'sip', 'mutual', 'elss', 'ppf', 'nps', 'fd', 'stock']):
-        reply = random.choice(RESPONSES['invest'])
-    elif any(k in msg for k in ['budget', 'expense', 'spend', 'track']):
-        reply = random.choice(RESPONSES['budget'])
-    elif any(k in msg for k in ['save', 'saving', 'emergency', 'fund']):
-        reply = random.choice(RESPONSES['save'])
-    elif any(k in msg for k in ['scheme', 'government', 'pmjjby', 'sukanya', 'atal', 'awas']):
-        reply = random.choice(RESPONSES['scheme'])
-    elif any(k in msg for k in ['loan', 'emi', 'cibil', 'credit']):
-        reply = random.choice(RESPONSES['loan'])
+    if any(word in message for word in [
+        "tax", "80c", "80d", "itr", "regime", "deduct"
+    ]):
+        group = "tax"
+
+    elif any(word in message for word in [
+        "invest", "sip", "mutual", "elss", "ppf",
+        "nps", "fd", "stock"
+    ]):
+        group = "invest"
+
+    elif any(word in message for word in [
+        "budget", "expense", "spend", "track"
+    ]):
+        group = "budget"
+
+    elif any(word in message for word in [
+        "save", "saving", "emergency", "fund"
+    ]):
+        group = "save"
+
+    elif any(word in message for word in [
+        "scheme", "government", "pmjjby",
+        "sukanya", "atal", "awas"
+    ]):
+        group = "scheme"
+
+    elif any(word in message for word in [
+        "loan", "emi", "cibil", "credit"
+    ]):
+        group = "loan"
+
     else:
-        reply = random.choice(RESPONSES['default'])
-
-    return jsonify({'reply': reply})
-
-# ════════════════════════════════════════════════════════════════════════════
-#  DASHBOARD SUMMARY
-# ════════════════════════════════════════════════════════════════════════════
-@app.route('/api/dashboard', methods=['GET'])
-def dashboard():
-    email = request.args.get('email', '').lower()
-    user = DB['users'].get(email, {})
-    income = user.get('income', 0)
-    expenses = DB['expenses'].get(email, [])
-    total_exp = sum(e['amount'] for e in expenses)
-    savings = income - total_exp
-    score = max(0, min(100, int((savings / income * 100) if income else 0)))
-
-    # Quick tax estimate
-    _, tax = calc_old_regime(income * 12, 150000, 25000, 0, 0)
-
-    by_cat = {}
-    for e in expenses:
-        by_cat[e['category']] = by_cat.get(e['category'], 0) + e['amount']
+        return jsonify({
+            "reply": (
+                "I'm FinPilot AI. Ask me about tax, investments, "
+                "budgeting, saving, loans or government schemes!"
+            )
+        })
 
     return jsonify({
-        'name': user.get('name', ''),
-        'monthly_income': income,
-        'monthly_expenses': total_exp,
-        'monthly_savings': savings,
-        'financial_score': score,
-        'annual_tax_estimate': tax,
-        'expense_by_category': by_cat,
-        'recent_expenses': expenses[-5:][::-1]
+        "reply": random.choice(RESPONSES[group])
     })
 
-if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+
+# =========================================================
+# DASHBOARD
+# =========================================================
+
+@app.route("/api/dashboard", methods=["GET"])
+def dashboard():
+    email = request.args.get("email", "").strip().lower()
+
+    user = query_one(
+        """SELECT user_id, name, monthly_income
+           FROM users WHERE email = %s""",
+        (email,)
+    )
+
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    expenses = query_all(
+        """SELECT expense_id AS id, category, amount,
+                  note, expense_date AS date
+           FROM expenses
+           WHERE user_id = %s
+           ORDER BY expense_date, expense_id""",
+        (user["user_id"],)
+    )
+
+    income = float(user["monthly_income"] or 0)
+
+    total_expenses = sum(
+        float(expense["amount"]) for expense in expenses
+    )
+
+    savings = income - total_expenses
+
+    score = max(
+        0,
+        min(100, int(savings / income * 100) if income else 0)
+    )
+
+    _, estimated_tax = calc_old_regime(
+        income * 12, 150000, 25000, 0, 0
+    )
+
+    by_category = {}
+
+    for expense in expenses:
+        category = expense["category"]
+
+        by_category[category] = (
+            by_category.get(category, 0)
+            + float(expense["amount"])
+        )
+
+    return jsonify(json_safe({
+        "name": user["name"],
+        "monthly_income": income,
+        "monthly_expenses": total_expenses,
+        "monthly_savings": savings,
+        "financial_score": score,
+        "annual_tax_estimate": estimated_tax,
+        "expense_by_category": by_category,
+        "recent_expenses": list(reversed(expenses[-5:]))
+    }))
+
+
+# =========================================================
+# START APPLICATION
+# =========================================================
+
+if __name__ == "__main__":
+    app.run(
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", "5000")),
+        debug=False
+    )
