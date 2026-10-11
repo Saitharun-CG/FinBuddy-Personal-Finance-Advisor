@@ -13,13 +13,16 @@ app = Flask(__name__)
 CORS(app)
 
 # Render PostgreSQL connection
-DATABASE_URL = os.environ.get("postgresql://finbuddy_db_vb77_user:cObQYT1E6W6MgsCynfOXidvyl9P1sgmi@dpg-db5rreu7bikc73dril70-a/finbuddy_db_vb77", "").strip()
-
-print("DATABASE_URL configured:", bool(postgresql://finbuddy_db_vb77_user:cObQYT1E6W6MgsCynfOXidvyl9P1sgmi@dpg-db5rreu7bikc73dril70-a/finbuddy_db_vb77))
-print("DATABASE_URL format valid:", DATABASE_URL.startswith(("postgres://", "postgresql://")))
+DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
 
 if not DATABASE_URL:
-    raise RuntimeError("DATABASE_URL is missing or empty in the backend environment.")
+    raise RuntimeError("DATABASE_URL is missing in Render Environment settings.")
+
+def get_db_connection():
+    return psycopg2.connect(
+        DATABASE_URL,
+        sslmode=os.environ.get("DB_SSLMODE", "require")
+    )
 
 @contextmanager
 def db_connection():
