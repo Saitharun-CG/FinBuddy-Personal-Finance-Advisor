@@ -4,9 +4,13 @@ import json, os, hashlib, datetime
 
 app = Flask(__name__, static_folder='static')
 
-CORS(app, origins=[
-    "https://finbuddy-frontend.onrender.com"
-])
+CORS(app, resources={
+    r"/api/*": {
+        "origins": [
+            "https://finbuddy-frontend.onrender.com"
+        ]
+    }
+})
 def home():
     return jsonify({
         'app': 'FinBuddy Personal Finance Advisor',
