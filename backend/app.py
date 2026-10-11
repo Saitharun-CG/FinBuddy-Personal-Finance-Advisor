@@ -4,6 +4,13 @@ import json, os, hashlib, datetime
 
 app = Flask(__name__, static_folder='static')
 CORS(app)
+@app.route('/')
+def home():
+    return jsonify({
+        'app': 'FinBuddy Personal Finance Advisor',
+        'status': 'running',
+        'message': 'Backend API is working!'
+    })
 
 # ── In-memory DB (replace with SQLite/MySQL for production) ──────────────────
 DB = {
