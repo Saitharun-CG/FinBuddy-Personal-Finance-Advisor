@@ -14,6 +14,7 @@ CORS(app)
 
 # Render PostgreSQL connection
 DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
+DB_SSLMODE = os.environ.get("DB_SSLMODE", "require")
 
 if not DATABASE_URL:
     raise RuntimeError("DATABASE_URL is missing in Render Environment settings.")
