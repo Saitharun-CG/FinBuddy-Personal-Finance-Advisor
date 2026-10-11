@@ -13,9 +13,13 @@ app = Flask(__name__)
 CORS(app)
 
 # Render PostgreSQL connection
-DATABASE_URL = os.environ.get("postgresql://finbuddy_db_vb77_user:cObQYT1E6W6MgsCynfOXidvyl9P1sgmi@dpg-db5rreu7bikc73dril70-a/finbuddy_db_vb77")
-DB_SSLMODE = os.environ.get("DB_SSLMODE", "require")
+DATABASE_URL = os.environ.get("postgresql://finbuddy_db_vb77_user:cObQYT1E6W6MgsCynfOXidvyl9P1sgmi@dpg-db5rreu7bikc73dril70-a/finbuddy_db_vb77L", "").strip()
 
+if not DATABASE_URL:
+    raise RuntimeError(
+        "DATABASE_URL is missing or empty. "
+        "Check the backend service Environment settings in Render."
+    )
 
 @contextmanager
 def db_connection():
