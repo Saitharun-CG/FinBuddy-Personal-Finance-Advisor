@@ -10,30 +10,33 @@ import datetime
 import random
 
 app = Flask(__name__)
-CORS(app)
 
-# Render PostgreSQL connection
+CORS(app, resources={
+    r"/api/*": {
+        "origins": [
+            "https://finbuddy-frontend.onrender.com"
+        ]
+    }
+})
+
+# -------------------- DATABASE --------------------
+
 DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
 DB_SSLMODE = os.environ.get("DB_SSLMODE", "require")
 
 if not DATABASE_URL:
-    raise RuntimeError("DATABASE_URL is missing in Render Environment settings.")
-
-def get_db_connection():
-    return psycopg2.connect(
-        DATABASE_URL,
-        sslmode=os.environ.get("DB_SSLMODE", "require")
+    raise RuntimeError(
+        "DATABASE_URL is missing from the backend environment variables."
     )
+
 
 @contextmanager
 def db_connection():
-    if not DATABASE_URL:
-        raise RuntimeError("DATABASE_URL is not configured in Render.")
-
     conn = psycopg2.connect(
         DATABASE_URL,
         sslmode=DB_SSLMODE,
-        cursor_factory=RealDictCursor
+        cursor_factory=RealDictCursor,
+        connect_timeout=10
     )
     try:
         yield conn
@@ -46,11 +49,15 @@ def db_connection():
 
 
 def hash_pw(password):
-    return hashlib.sha256(password.encode()).hexdigest()
+    return hashlib.sha256(password.encode("utf-8")).hexdigest()
 
 
 def today():
     return datetime.date.today().isoformat()
+
+
+def money(value):
+    return round(float(value or 0), 2)
 
 
 def init_db():
@@ -105,14 +112,21 @@ def init_db():
             """)
 
 
-def money(value):
-    return round(float(value or 0), 2)
+def expense_dict(row):
+    return {
+        "id": row["id"],
+        "category": row["category"],
+        "amount": money(row["amount"]),
+        "note": row["note"] or "",
+        "date": row["date"].isoformat()
+    }
 
 
-# Initialize database tables when the app starts.
-# If the database is unavailable, Render logs will show the error.
+# Initialize tables at application startup.
 init_db()
 
+
+# -------------------- HOME AND HEALTH --------------------
 
 @app.route("/", methods=["GET"])
 def home():
@@ -129,10 +143,12 @@ def health():
             with conn.cursor() as cur:
                 cur.execute("SELECT 1 AS connected")
                 cur.fetchone()
+
         return jsonify({
             "status": "healthy",
             "database": "connected"
         })
+
     except Exception:
         app.logger.exception("Database health check failed")
         return jsonify({
@@ -141,25 +157,34 @@ def health():
         }), 503
 
 
-# -------------------- AUTHENTICATION --------------------
+# -------------------- REGISTRATION --------------------
 
 @app.route("/api/register", methods=["POST"])
 def register():
-    d = request.get_json(silent=True) or {}
-    name = str(d.get("name", "")).strip()
-    email = str(d.get("email", "")).strip().lower()
-    password = d.get("password", "")
+    data = request.get_json(silent=True) or {}
+
+    name = str(data.get("name", "")).strip()
+    email = str(data.get("email", "")).strip().lower()
+    password = data.get("password", "")
 
     if not name or not email or not password:
-        return jsonify({"error": "Name, email and password are required"}), 400
+        return jsonify({
+            "error": "Name, email and password are required"
+        }), 400
 
-    if len(password) < 6:
-        return jsonify({"error": "Password must be at least 6 characters"}), 400
+    if not isinstance(password, str) or len(password) < 6:
+        return jsonify({
+            "error": "Password must be at least 6 characters"
+        }), 400
 
     try:
-        income = max(0, money(d.get("income", 0)))
-        age = int(d.get("age", 25))
-        risk = str(d.get("risk", "moderate")).lower()
+        income = max(0, money(data.get("income", 0)))
+        age = int(data.get("age", 25))
+
+        if not 18 <= age <= 120:
+            return jsonify({"error": "Enter a valid age"}), 400
+
+        risk = str(data.get("risk", "moderate")).lower()
 
         if risk not in ("conservative", "moderate", "aggressive"):
             risk = "moderate"
@@ -172,46 +197,69 @@ def register():
                     VALUES (%s, %s, %s, %s, %s, %s)
                     ON CONFLICT (email) DO NOTHING
                     RETURNING email
-                """, (email, name, hash_pw(password), income, age, risk))
-
+                """, (
+                    email, name, hash_pw(password),
+                    income, age, risk
+                ))
                 created = cur.fetchone()
 
         if not created:
-            return jsonify({"error": "Email already registered"}), 409
+            return jsonify({
+                "error": "Email already registered. Please log in."
+            }), 409
 
         return jsonify({
             "message": "Registered successfully",
             "name": name,
-            "email": email
+            "email": email,
+            "income": income,
+            "age": age,
+            "risk": risk
         }), 201
 
     except (ValueError, TypeError):
-        return jsonify({"error": "Please enter valid income and age"}), 400
+        return jsonify({
+            "error": "Please enter valid income and age"
+        }), 400
+
     except Exception:
         app.logger.exception("Registration failed")
-        return jsonify({"error": "Registration failed. Please try again."}), 500
+        return jsonify({
+            "error": "Registration failed. Please try again."
+        }), 500
 
+
+# -------------------- LOGIN --------------------
 
 @app.route("/api/login", methods=["POST"])
 def login():
-    d = request.get_json(silent=True) or {}
-    email = str(d.get("email", "")).strip().lower()
-    password = d.get("password", "")
+    data = request.get_json(silent=True) or {}
+
+    email = str(data.get("email", "")).strip().lower()
+    password = data.get("password", "")
 
     if not email or not password:
-        return jsonify({"error": "Email and password are required"}), 400
+        return jsonify({
+            "error": "Email and password are required"
+        }), 400
+
+    if not isinstance(password, str):
+        return jsonify({"error": "Invalid password"}), 400
 
     try:
         with db_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("""
                     SELECT name, email, password_hash, income, age, risk
-                    FROM users WHERE email = %s
+                    FROM users
+                    WHERE LOWER(email) = %s
                 """, (email,))
                 user = cur.fetchone()
 
         if not user or user["password_hash"] != hash_pw(password):
-            return jsonify({"error": "Invalid email or password"}), 401
+            return jsonify({
+                "error": "Invalid email or password"
+            }), 401
 
         return jsonify({
             "message": "Login successful",
@@ -224,76 +272,95 @@ def login():
 
     except Exception:
         app.logger.exception("Login failed")
-        return jsonify({"error": "Login service is temporarily unavailable"}), 500
+        return jsonify({
+            "error": "Login service is temporarily unavailable"
+        }), 500
 
+
+# -------------------- PROFILE --------------------
 
 @app.route("/api/profile", methods=["GET"])
 def profile():
     email = request.args.get("email", "").strip().lower()
 
-    with db_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-                SELECT name, email, income, age, risk, created_at
-                FROM users WHERE email = %s
-            """, (email,))
-            user = cur.fetchone()
+    if not email:
+        return jsonify({"error": "Email is required"}), 400
 
-    if not user:
-        return jsonify({"error": "User not found"}), 404
+    try:
+        with db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT name, email, income, age, risk, created_at
+                    FROM users
+                    WHERE LOWER(email) = %s
+                """, (email,))
+                user = cur.fetchone()
 
-    user["income"] = money(user["income"])
-    user["created_at"] = (
-        user["created_at"].isoformat() if user["created_at"] else None
-    )
-    return jsonify(user)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+
+        user["income"] = money(user["income"])
+        user["created_at"] = (
+            user["created_at"].isoformat()
+            if user["created_at"] else None
+        )
+
+        return jsonify(user)
+
+    except Exception:
+        app.logger.exception("Profile loading failed")
+        return jsonify({"error": "Unable to load profile"}), 500
 
 
 # -------------------- EXPENSES --------------------
-
-def expense_dict(row):
-    return {
-        "id": row["id"],
-        "category": row["category"],
-        "amount": money(row["amount"]),
-        "note": row["note"] or "",
-        "date": row["date"].isoformat()
-    }
-
 
 @app.route("/api/expenses", methods=["GET"])
 def get_expenses():
     email = request.args.get("email", "").strip().lower()
 
-    with db_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-                SELECT e.id, e.category, e.amount, e.note, e.date
-                FROM expenses e
-                JOIN users u ON u.email = e.email
-                WHERE e.email = %s
-                ORDER BY e.date DESC, e.id DESC
-            """, (email,))
-            rows = cur.fetchall()
+    if not email:
+        return jsonify({"error": "Email is required"}), 400
 
-    return jsonify([expense_dict(row) for row in rows])
+    try:
+        with db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT id, category, amount, note, date
+                    FROM expenses
+                    WHERE LOWER(email) = %s
+                    ORDER BY date DESC, id DESC
+                """, (email,))
+                rows = cur.fetchall()
+
+        return jsonify([expense_dict(row) for row in rows])
+
+    except Exception:
+        app.logger.exception("Expense retrieval failed")
+        return jsonify({"error": "Unable to load expenses"}), 500
 
 
 @app.route("/api/expenses", methods=["POST"])
 def add_expense():
-    d = request.get_json(silent=True) or {}
-    email = str(d.get("email", "")).strip().lower()
-    category = str(d.get("category", "")).strip()
-    note = str(d.get("note", ""))
-    
+    data = request.get_json(silent=True) or {}
+
+    email = str(data.get("email", "")).strip().lower()
+    category = str(data.get("category", "")).strip()
+    note = str(data.get("note", ""))
+
+    if not email or not category:
+        return jsonify({
+            "error": "Email and category are required"
+        }), 400
+
     try:
-        amount = money(d.get("amount"))
-        if amount <= 0 or not category or not email:
+        amount = money(data.get("amount"))
+
+        if amount <= 0:
             return jsonify({
-                "error": "Email, category and a positive amount are required"
+                "error": "Amount must be greater than zero"
             }), 400
 
-        date_value = d.get("date") or today()
+        date_value = data.get("date") or today()
         datetime.date.fromisoformat(date_value)
 
         with db_connection() as conn:
@@ -301,9 +368,12 @@ def add_expense():
                 cur.execute("""
                     INSERT INTO expenses (email, category, amount, note, date)
                     SELECT email, %s, %s, %s, %s
-                    FROM users WHERE email = %s
+                    FROM users
+                    WHERE LOWER(email) = %s
                     RETURNING id, category, amount, note, date
-                """, (category, amount, note, date_value, email))
+                """, (
+                    category, amount, note, date_value, email
+                ))
                 row = cur.fetchone()
 
         if not row:
@@ -317,82 +387,129 @@ def add_expense():
     except (ValueError, TypeError):
         return jsonify({"error": "Invalid amount or date"}), 400
 
+    except Exception:
+        app.logger.exception("Adding expense failed")
+        return jsonify({"error": "Unable to add expense"}), 500
+
 
 @app.route("/api/expenses/<int:exp_id>", methods=["DELETE"])
 def delete_expense(exp_id):
     email = request.args.get("email", "").strip().lower()
 
-    with db_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-                DELETE FROM expenses
-                WHERE id = %s AND email = %s
-            """, (exp_id, email))
-            deleted = cur.rowcount
+    if not email:
+        return jsonify({"error": "Email is required"}), 400
 
-    if not deleted:
-        return jsonify({"error": "Expense not found"}), 404
+    try:
+        with db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    DELETE FROM expenses
+                    WHERE id = %s AND LOWER(email) = %s
+                """, (exp_id, email))
+                deleted = cur.rowcount
 
-    return jsonify({"message": "Deleted"})
+        if not deleted:
+            return jsonify({"error": "Expense not found"}), 404
+
+        return jsonify({"message": "Deleted"})
+
+    except Exception:
+        app.logger.exception("Deleting expense failed")
+        return jsonify({"error": "Unable to delete expense"}), 500
 
 
 @app.route("/api/expenses/summary", methods=["GET"])
 def expense_summary():
     email = request.args.get("email", "").strip().lower()
 
-    with db_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT income FROM users WHERE email = %s", (email,))
-            user = cur.fetchone()
+    if not email:
+        return jsonify({"error": "Email is required"}), 400
 
-            if not user:
-                return jsonify({"error": "User not found"}), 404
+    try:
+        with db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT income FROM users
+                    WHERE LOWER(email) = %s
+                """, (email,))
+                user = cur.fetchone()
 
-            cur.execute("""
-                SELECT category, SUM(amount) AS total
-                FROM expenses WHERE email = %s
-                GROUP BY category
-            """, (email,))
-            categories = cur.fetchall()
+                if not user:
+                    return jsonify({"error": "User not found"}), 404
 
-    income = money(user["income"])
-    by_cat = {r["category"]: money(r["total"]) for r in categories}
-    total = sum(by_cat.values())
-    savings = income - total
-    score = max(0, min(100, int(savings / income * 100))) if income else 0
+                cur.execute("""
+                    SELECT category, SUM(amount) AS total
+                    FROM expenses
+                    WHERE LOWER(email) = %s
+                    GROUP BY category
+                """, (email,))
+                rows = cur.fetchall()
 
-    limits = {"Food": 25, "Rent": 30, "Entertainment": 10, "Travel": 10}
-    insights = []
-    for category, amount in by_cat.items():
-        percent = amount / income * 100 if income else 0
-        if category in limits and percent > limits[category]:
-            insights.append(
-                f"You spend {percent:.0f}% on {category}. "
-                f"Recommended: at most {limits[category]}%."
-            )
+        income = money(user["income"])
+        by_category = {
+            row["category"]: money(row["total"])
+            for row in rows
+        }
+        total = sum(by_category.values())
+        savings = income - total
+        score = (
+            max(0, min(100, round(savings / income * 100)))
+            if income else 0
+        )
 
-    return jsonify({
-        "total_expenses": money(total),
-        "savings": money(savings),
-        "by_category": by_cat,
-        "financial_score": score,
-        "insights": insights
-    })
+        limits = {
+            "Food": 25,
+            "Rent": 30,
+            "Entertainment": 10,
+            "Travel": 10
+        }
+
+        insights = []
+
+        for category, amount in by_category.items():
+            percent = amount / income * 100 if income else 0
+
+            if category in limits and percent > limits[category]:
+                insights.append(
+                    f"You spend {percent:.0f}% on {category}. "
+                    f"Recommended: at most {limits[category]}%."
+                )
+
+        return jsonify({
+            "total_expenses": money(total),
+            "savings": money(savings),
+            "by_category": by_category,
+            "financial_score": score,
+            "insights": insights
+        })
+
+    except Exception:
+        app.logger.exception("Expense summary failed")
+        return jsonify({"error": "Unable to load expense summary"}), 500
 
 
 # -------------------- TAX CALCULATOR --------------------
 
 def calc_old_regime(income, ded_80c, ded_80d, hra, other_ded):
-    taxable = max(0, income - ded_80c - ded_80d - hra - other_ded)
+    taxable = max(
+        0, income - ded_80c - ded_80d - hra - other_ded
+    )
+
     tax = 0
-    slabs = [(250000, 0), (250000, 0.05), (500000, 0.20),
-             (float("inf"), 0.30)]
+    slabs = [
+        (250000, 0),
+        (250000, 0.05),
+        (500000, 0.20),
+        (float("inf"), 0.30)
+    ]
+
     remaining = taxable
 
     for slab, rate in slabs:
         chunk = min(remaining, slab)
         tax += chunk * rate
         remaining -= chunk
+
         if remaining <= 0:
             break
 
@@ -401,14 +518,22 @@ def calc_old_regime(income, ded_80c, ded_80d, hra, other_ded):
 
 def calc_new_regime(income):
     tax = 0
-    slabs = [(300000, 0), (300000, 0.05), (300000, 0.10),
-             (300000, 0.15), (300000, 0.20), (float("inf"), 0.30)]
+    slabs = [
+        (300000, 0),
+        (300000, 0.05),
+        (300000, 0.10),
+        (300000, 0.15),
+        (300000, 0.20),
+        (float("inf"), 0.30)
+    ]
+
     remaining = max(0, income)
 
     for slab, rate in slabs:
         chunk = min(remaining, slab)
         tax += chunk * rate
         remaining -= chunk
+
         if remaining <= 0:
             break
 
@@ -417,14 +542,15 @@ def calc_new_regime(income):
 
 @app.route("/api/tax/calculate", methods=["POST"])
 def calculate_tax():
-    d = request.get_json(silent=True) or {}
+    data = request.get_json(silent=True) or {}
 
     try:
-        income = max(0, money(d.get("income", 0)))
-        ded_80c = min(max(0, money(d.get("ded_80c", 0))), 150000)
-        ded_80d = min(max(0, money(d.get("ded_80d", 0))), 25000)
-        hra = max(0, money(d.get("hra", 0)))
-        other = max(0, money(d.get("other_ded", 0)))
+        income = max(0, money(data.get("income", 0)))
+        ded_80c = min(max(0, money(data.get("ded_80c", 0))), 150000)
+        ded_80d = min(max(0, money(data.get("ded_80d", 0))), 25000)
+        hra = max(0, money(data.get("hra", 0)))
+        other = max(0, money(data.get("other_ded", 0)))
+
     except (ValueError, TypeError):
         return jsonify({"error": "Enter valid numeric values"}), 400
 
@@ -432,48 +558,74 @@ def calculate_tax():
         income, ded_80c, ded_80d, hra, other
     )
     new_tax = calc_new_regime(income)
-    recommendation = "Old Regime" if old_tax <= new_tax else "New Regime"
 
-    # Save the result if an email was supplied and belongs to a registered user.
-    email = str(d.get("email", "")).strip().lower()
-    if email:
-        with db_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute("""
-                    INSERT INTO taxes (email, income, tax, regime, year)
-                    SELECT email, %s, %s, %s, %s
-                    FROM users WHERE email = %s
-                """, (
-                    income, min(old_tax, new_tax), recommendation,
-                    datetime.date.today().year, email
-                ))
+    recommendation = (
+        "Old Regime" if old_tax <= new_tax else "New Regime"
+    )
 
-    return jsonify({
-        "income": income,
-        "old_regime": {"taxable_income": old_taxable, "tax": old_tax},
-        "new_regime": {"taxable_income": income, "tax": new_tax},
-        "recommendation": recommendation,
-        "you_save": abs(old_tax - new_tax),
-        "effective_rate_old": round(old_tax / income * 100, 2) if income else 0,
-        "effective_rate_new": round(new_tax / income * 100, 2) if income else 0
-    })
+    email = str(data.get("email", "")).strip().lower()
+
+    try:
+        if email:
+            with db_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        INSERT INTO taxes (email, income, tax, regime, year)
+                        SELECT email, %s, %s, %s, %s
+                        FROM users WHERE LOWER(email) = %s
+                    """, (
+                        income,
+                        min(old_tax, new_tax),
+                        recommendation,
+                        datetime.date.today().year,
+                        email
+                    ))
+
+        return jsonify({
+            "income": income,
+            "old_regime": {
+                "taxable_income": old_taxable,
+                "tax": old_tax
+            },
+            "new_regime": {
+                "taxable_income": income,
+                "tax": new_tax
+            },
+            "recommendation": recommendation,
+            "you_save": abs(old_tax - new_tax),
+            "effective_rate_old": round(
+                old_tax / income * 100, 2
+            ) if income else 0,
+            "effective_rate_new": round(
+                new_tax / income * 100, 2
+            ) if income else 0
+        })
+
+    except Exception:
+        app.logger.exception("Tax calculation failed")
+        return jsonify({"error": "Unable to save or calculate tax"}), 500
 
 
 # -------------------- INVESTMENT PLANNER --------------------
 
 @app.route("/api/investments/suggest", methods=["POST"])
 def suggest_investments():
-    d = request.get_json(silent=True) or {}
+    data = request.get_json(silent=True) or {}
 
     try:
-        income = max(0, money(d.get("income", 0)))
-        age = int(d.get("age", 30))
-        savings = max(0, money(d.get("savings", income * 0.2)))
-    except (ValueError, TypeError):
-        return jsonify({"error": "Enter valid income, age and savings"}), 400
+        income = max(0, money(data.get("income", 0)))
+        age = int(data.get("age", 30))
+        savings = max(
+            0, money(data.get("savings", income * 0.2))
+        )
 
-    risk = str(d.get("risk", "moderate")).lower()
-    email = str(d.get("email", "")).strip().lower()
+    except (ValueError, TypeError):
+        return jsonify({
+            "error": "Enter valid income, age and savings"
+        }), 400
+
+    risk = str(data.get("risk", "moderate")).lower()
+    email = str(data.get("email", "")).strip().lower()
 
     plans = {
         "conservative": [
@@ -487,7 +639,7 @@ def suggest_investments():
             {"type": "PPF", "pct": 25, "return": "Government-notified rate", "reason": "Long-term savings"},
             {"type": "Fixed Deposit", "pct": 20, "return": "Bank-specific", "reason": "Predictable interest"},
             {"type": "NPS", "pct": 10, "return": "Market-linked", "reason": "Retirement planning"},
-            {"type": "Emergency Fund", "pct": 10, "return": "Varies", "reason": "Keep accessible for emergencies"}
+            {"type": "Emergency Fund", "pct": 10, "return": "Varies", "reason": "Accessible emergency savings"}
         ],
         "aggressive": [
             {"type": "Equity Mutual Funds / ELSS", "pct": 50, "return": "Market-linked", "reason": "Higher risk and growth potential"},
@@ -500,34 +652,50 @@ def suggest_investments():
     if risk not in plans:
         risk = "moderate"
 
-    allocations = []
-    for item in plans[risk]:
-        amount = round(savings * item["pct"] / 100)
-        allocations.append({**item, "monthly_amount": amount})
+    allocations = [
+        {
+            **item,
+            "monthly_amount": round(savings * item["pct"] / 100)
+        }
+        for item in plans[risk]
+    ]
 
-    if email:
-        with db_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT email FROM users WHERE email = %s", (email,))
-                exists = cur.fetchone()
-                if exists:
-                    cur.execute("DELETE FROM investments WHERE email = %s", (email,))
-                    for item in allocations:
+    try:
+        if email:
+            with db_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT email FROM users WHERE LOWER(email) = %s
+                    """, (email,))
+                    exists = cur.fetchone()
+
+                    if exists:
                         cur.execute("""
-                            INSERT INTO investments (email, type, amount)
-                            VALUES (%s, %s, %s)
-                        """, (email, item["type"], item["monthly_amount"]))
+                            DELETE FROM investments WHERE LOWER(email) = %s
+                        """, (email,))
 
-    return jsonify({
-        "monthly_savings": savings,
-        "risk_profile": risk,
-        "allocations": allocations,
-        "tip": (
-            "Consider growth assets if you have a long time horizon."
-            if age < 40 else
-            "Review risk and safer assets as your goals approach."
-        )
-    })
+                        for item in allocations:
+                            cur.execute("""
+                                INSERT INTO investments (email, type, amount)
+                                VALUES (%s, %s, %s)
+                            """, (
+                                email, item["type"], item["monthly_amount"]
+                            ))
+
+        return jsonify({
+            "monthly_savings": savings,
+            "risk_profile": risk,
+            "allocations": allocations,
+            "tip": (
+                "Consider growth assets if you have a long time horizon."
+                if age < 40 else
+                "Review risk and safer assets as your goals approach."
+            )
+        })
+
+    except Exception:
+        app.logger.exception("Investment suggestion failed")
+        return jsonify({"error": "Unable to save investment plan"}), 500
 
 
 # -------------------- GOVERNMENT SCHEMES --------------------
@@ -536,7 +704,7 @@ SCHEMES = [
     {
         "name": "PM Jan Dhan Yojana",
         "category": "Banking",
-        "benefit": "Basic banking access; benefits depend on eligibility and current rules",
+        "benefit": "Basic banking access; eligibility rules apply",
         "eligibility": "Eligible Indian residents",
         "income_max": 9999999,
         "url": "https://pmjdy.gov.in"
@@ -544,10 +712,10 @@ SCHEMES = [
     {
         "name": "Atal Pension Yojana (APY)",
         "category": "Pension",
-        "benefit": "Pension scheme subject to current eligibility rules",
-        "eligibility": "Eligible subscribers; check current rules",
+        "benefit": "Pension scheme subject to current rules",
+        "eligibility": "Check current subscriber requirements",
         "income_max": 9999999,
-        "url": "https://enps.nsdl.com/eNPS/NationalPensionSystem.html"
+        "url": "https://enps.nsdl.com"
     },
     {
         "name": "PMJJBY - Life Insurance",
@@ -568,7 +736,7 @@ SCHEMES = [
     {
         "name": "Sukanya Samriddhi Yojana",
         "category": "Savings",
-        "benefit": "Government savings scheme for an eligible girl child",
+        "benefit": "Government savings scheme for eligible girl children",
         "eligibility": "Subject to current account rules",
         "income_max": 9999999,
         "url": "https://www.indiapost.gov.in"
@@ -608,10 +776,17 @@ def get_schemes():
         return jsonify({"error": "Invalid income"}), 400
 
     category = request.args.get("category", "").strip()
-    result = [s for s in SCHEMES if s["income_max"] >= income]
+
+    result = [
+        scheme for scheme in SCHEMES
+        if scheme["income_max"] >= income
+    ]
 
     if category:
-        result = [s for s in result if s["category"].lower() == category.lower()]
+        result = [
+            scheme for scheme in result
+            if scheme["category"].lower() == category.lower()
+        ]
 
     return jsonify(result)
 
@@ -620,13 +795,13 @@ def get_schemes():
 
 RESPONSES = {
     "tax": [
-        "Compare the available tax regimes and verify current tax rules before filing.",
-        "Eligible deductions can affect your taxable income under the applicable regime.",
+        "Compare available tax regimes and verify current rules before filing.",
+        "Eligible deductions can affect taxable income under the applicable regime.",
         "Keep your income and investment documents ready when planning taxes."
     ],
     "invest": [
         "Choose investments based on your goals, time horizon and risk tolerance.",
-        "Mutual fund and stock returns are market-linked and are not guaranteed.",
+        "Mutual fund and stock returns are market-linked and not guaranteed.",
         "Build an emergency fund before taking substantial investment risk."
     ],
     "budget": [
@@ -635,14 +810,14 @@ RESPONSES = {
         "Review recurring subscriptions and other regular costs."
     ],
     "save": [
-        "Try to build an emergency fund for several months of essential expenses.",
+        "Build an emergency fund for several months of essential expenses.",
         "Automating savings after payday can help build a consistent habit.",
-        "Review small recurring expenses to find possible savings."
+        "Review recurring expenses to find possible savings."
     ],
     "scheme": [
-        "Check official government scheme websites for current eligibility and benefits.",
+        "Check official government websites for current scheme eligibility.",
         "Compare scheme requirements before applying.",
-        "Use official government sources to verify current scheme terms."
+        "Use official sources to verify current benefits and terms."
     ],
     "loan": [
         "Pay EMIs on time and review the full borrowing cost before taking a loan.",
@@ -650,7 +825,7 @@ RESPONSES = {
         "Borrow according to your repayment ability."
     ],
     "default": [
-        "I'm your finance assistant. Ask me about tax, investment, budgeting, saving, schemes or loans.",
+        "I'm your finance assistant. Ask about tax, investment, budgeting, saving, schemes or loans.",
         "Try asking a specific question about expenses, tax planning or savings."
     ]
 }
@@ -658,20 +833,32 @@ RESPONSES = {
 
 @app.route("/api/chat", methods=["POST"])
 def chat():
-    d = request.get_json(silent=True) or {}
-    msg = str(d.get("message", "")).lower()
+    data = request.get_json(silent=True) or {}
+    message = str(data.get("message", "")).lower()
 
-    if any(k in msg for k in ["tax", "80c", "80d", "itr", "regime", "deduct"]):
+    if any(word in message for word in [
+        "tax", "80c", "80d", "itr", "regime", "deduct"
+    ]):
         key = "tax"
-    elif any(k in msg for k in ["invest", "sip", "mutual", "elss", "ppf", "nps", "stock"]):
+    elif any(word in message for word in [
+        "invest", "sip", "mutual", "elss", "ppf", "nps", "stock"
+    ]):
         key = "invest"
-    elif any(k in msg for k in ["budget", "expense", "spend", "track"]):
+    elif any(word in message for word in [
+        "budget", "expense", "spend", "track"
+    ]):
         key = "budget"
-    elif any(k in msg for k in ["save", "saving", "emergency", "fund"]):
+    elif any(word in message for word in [
+        "save", "saving", "emergency", "fund"
+    ]):
         key = "save"
-    elif any(k in msg for k in ["scheme", "government", "pmjjby", "sukanya", "atal", "awas"]):
+    elif any(word in message for word in [
+        "scheme", "government", "pmjjby", "sukanya", "atal", "awas"
+    ]):
         key = "scheme"
-    elif any(k in msg for k in ["loan", "emi", "cibil", "credit"]):
+    elif any(word in message for word in [
+        "loan", "emi", "cibil", "credit"
+    ]):
         key = "loan"
     else:
         key = "default"
@@ -685,45 +872,85 @@ def chat():
 def dashboard():
     email = request.args.get("email", "").strip().lower()
 
-    with db_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-                SELECT name, income FROM users WHERE email = %s
-            """, (email,))
-            user = cur.fetchone()
+    if not email:
+        return jsonify({
+            "error": "Email is required. Please log in again."
+        }), 400
 
-            if not user:
-                return jsonify({"error": "User not found"}), 404
+    try:
+        with db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT name, email, income
+                    FROM users
+                    WHERE LOWER(email) = %s
+                """, (email,))
+                user = cur.fetchone()
 
-            cur.execute("""
-                SELECT id, category, amount, note, date
-                FROM expenses WHERE email = %s
-                ORDER BY date DESC, id DESC
-            """, (email,))
-            expenses = cur.fetchall()
+                if not user:
+                    return jsonify({
+                        "error": (
+                            "Account not found in the database. "
+                            "Please register or log in with your registered account."
+                        )
+                    }), 404
 
-    income = money(user["income"])
-    total_expenses = sum(money(e["amount"]) for e in expenses)
-    savings = income - total_expenses
-    score = max(0, min(100, int(savings / income * 100))) if income else 0
+                cur.execute("""
+                    SELECT id, category, amount, note, date
+                    FROM expenses
+                    WHERE LOWER(email) = %s
+                    ORDER BY date DESC, id DESC
+                """, (email,))
+                expenses = cur.fetchall()
 
-    _, tax = calc_old_regime(income * 12, 150000, 25000, 0, 0)
+        income = money(user["income"])
+        total_expenses = sum(
+            money(expense["amount"]) for expense in expenses
+        )
+        savings = income - total_expenses
 
-    by_cat = {}
-    for e in expenses:
-        by_cat[e["category"]] = by_cat.get(e["category"], 0) + money(e["amount"])
+        score = (
+            max(0, min(100, round(savings / income * 100)))
+            if income > 0 else 0
+        )
 
-    return jsonify({
-        "name": user["name"],
-        "monthly_income": income,
-        "monthly_expenses": money(total_expenses),
-        "monthly_savings": money(savings),
-        "financial_score": score,
-        "annual_tax_estimate": tax,
-        "expense_by_category": by_cat,
-        "recent_expenses": [expense_dict(e) for e in expenses[:5]]
-    })
+        _, estimated_tax = calc_old_regime(
+            income * 12, 150000, 25000, 0, 0
+        )
+
+        by_category = {}
+
+        for expense in expenses:
+            category = expense["category"]
+            by_category[category] = (
+                by_category.get(category, 0)
+                + money(expense["amount"])
+            )
+
+        return jsonify({
+            "name": user["name"],
+            "email": user["email"],
+            "monthly_income": income,
+            "monthly_expenses": money(total_expenses),
+            "monthly_savings": money(savings),
+            "financial_score": score,
+            "annual_tax_estimate": estimated_tax,
+            "expense_by_category": by_category,
+            "recent_expenses": [
+                expense_dict(expense)
+                for expense in expenses[:5]
+            ]
+        }), 200
+
+    except Exception:
+        app.logger.exception("Dashboard loading failed")
+        return jsonify({
+            "error": "Unable to load your dashboard. Please try again."
+        }), 500
 
 
 if __name__ == "__main__":
-    app.run(debug=False, port=int(os.environ.get("PORT", 5000)))
+    app.run(
+        debug=False,
+        port=int(os.environ.get("PORT", 5000))
+    )
