@@ -1,57 +1,106 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Login – FinPilot</title>
-  <link rel="stylesheet" href="../css/style.css"/>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login - Smart Finance System</title>
+  <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
-<div class="auth-page">
-  <div class="orb orb-1" style="position:fixed"></div>
-  <div class="orb orb-2" style="position:fixed"></div>
-  <div class="auth-card">
-    <div style="margin-bottom:1.5rem">
-      <a href="../index.html" style="color:var(--accent);font-family:var(--font-head);font-size:1.2rem;text-decoration:none">◈ FinPilot</a>
+  <main class="auth-page">
+    <div class="auth-card">
+      <h2>Smart Finance System</h2>
+      <p>Login to your personal finance dashboard</p>
+
+      <div id="message" role="alert"></div>
+
+      <form id="login-form">
+        <label for="email">Email address</label>
+        <input
+          id="email"
+          type="email"
+          autocomplete="email"
+          required
+        >
+
+        <label for="password">Password</label>
+        <input
+          id="password"
+          type="password"
+          autocomplete="current-password"
+          required
+        >
+
+        <button id="login-button" type="submit">Login</button>
+      </form>
+
+      <p>
+        Don't have an account?
+        <a href="register.html">Register here</a>
+      </p>
     </div>
-    <h2>Welcome back</h2>
-    <p>Login to your financial dashboard</p>
-    <div id="msg" class="alert" style="display:none"></div>
-    <div class="form-group">
-      <label>Email Address</label>
-      <input type="email" id="email" placeholder="you@example.com"/>
-    </div>
-    <div class="form-group">
-      <label>Password</label>
-      <input type="password" id="password" placeholder="••••••••"/>
-    </div>
-    <button class="btn-primary" style="width:100%;padding:.85rem" onclick="doLogin()">Login →</button>
-    <div class="auth-link">
-      Don't have an account? <a href="register.html">Sign up free</a>
-    </div>
-    <div class="auth-link" style="margin-top:.5rem">
-      <a href="dashboard.html" style="color:var(--muted)">→ Skip to demo dashboard</a>
-    </div>
-  </div>
-</div>
-<script src="../js/main.js"></script>
-<script>
-async function doLogin() {
-  const email = document.getElementById('email').value.trim();
-  const pass  = document.getElementById('password').value;
-  if (!email || !pass) { showAlert('msg','Fill in all fields','error'); return; }
-  try {
-    const r = await api('/login', 'POST', { email, password: pass });
-    if (r.error) { showAlert('msg', r.error, 'error'); return; }
-    setUser({ name: r.name, email });
-    window.location.href = 'dashboard.html';
-  } catch(e) {
-    showAlert('msg','Cannot reach server – using demo mode','info');
-    setUser({ name: 'Demo User', email: 'demo@finpilot.in' });
-    setTimeout(() => window.location.href = 'dashboard.html', 1500);
-  }
-}
-document.addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
-</script>
+  </main>
+
+  <script src="../js/main.js"></script>
+  <script>
+    const form = document.getElementById("login-form");
+    const button = document.getElementById("login-button");
+    const message = document.getElementById("message");
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      message.textContent = "";
+      button.disabled = true;
+      button.textContent = "Logging in...";
+
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      try {
+        const response = await api("/api/login", "POST", {
+          email,
+          password
+        });
+
+        if (!response || response.error || response.success === false) {
+          throw new Error(
+            response?.error || response?.message || "Login failed."
+          );
+        }
+
+        const user = response.user || response;
+
+        if (!user.email || user.email.toLowerCase() !== email.toLowerCase()) {
+          throw new Error(
+            "The server did not return the expected account. Check the backend login response."
+          );
+        }
+
+        if (user.email.toLowerCase() === "demo@finpilot.in") {
+          throw new Error("The backend returned demo account details.");
+        }
+
+        // Use the same storage key as the dashboard.
+        const savedUser = {
+          ...user,
+          email: user.email,
+          name: user.name || user.full_name || user.email
+        };
+
+        sessionStorage.setItem("fp_user", JSON.stringify(savedUser));
+
+        window.location.href = "dashboard.html";
+      } catch (error) {
+        console.error("Login failed:", error);
+        message.textContent = error.message || "Unable to log in.";
+        message.style.color = "red";
+      } finally {
+        button.disabled = false;
+        button.textContent = "Login";
+      }
+    });
+  </script>
 </body>
 </html>

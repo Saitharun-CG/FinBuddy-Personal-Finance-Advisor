@@ -7,13 +7,30 @@ const API_URL =
 /* SESSION */
 function getUser() {
   try {
-    return JSON.parse(sessionStorage.getItem("fp_user") || "null");
-  } catch {
+    const saved = sessionStorage.getItem("fp_user");
+
+    if (!saved) return null;
+
+    const user = JSON.parse(saved);
+
+    if (!user || !user.email) {
+      sessionStorage.removeItem("fp_user");
+      return null;
+    }
+
+    return user;
+  } catch (error) {
+    console.error("Could not read user session:", error);
+    sessionStorage.removeItem("fp_user");
     return null;
   }
 }
 
 function setUser(user) {
+  if (!user || !user.email) {
+    throw new Error("Cannot save invalid user information.");
+  }
+
   sessionStorage.setItem("fp_user", JSON.stringify(user));
 }
 
@@ -22,7 +39,7 @@ function logout() {
   window.location.href = "../index.html";
 }
 
-/* FETCH HELPERS */
+/* API REQUESTS */
 async function api(path, method = "GET", body = null) {
   const options = {
     method,
@@ -41,37 +58,50 @@ async function api(path, method = "GET", body = null) {
     response = await fetch(API_URL + path, options);
   } catch (error) {
     console.error("Cannot connect to backend:", error);
+
     throw new Error(
-      "Cannot reach server. Please check your internet connection and try again."
+      "Cannot reach the server. Check your internet connection or try again later."
     );
   }
 
-  let data;
+  let result;
 
   try {
-    data = await response.json();
+    result = await response.json();
   } catch {
     throw new Error(
-      `Server returned an invalid response (${response.status}).`
+      `The server returned an invalid response (${response.status}).`
     );
   }
 
   if (!response.ok) {
     throw new Error(
-      data.error || data.message || `Request failed (${response.status})`
+      result.error ||
+      result.message ||
+      `Request failed (${response.status}).`
     );
   }
 
-  return data;
+  return result;
 }
 
 /* FORMAT */
 function inr(value) {
-  return "₹" + Number(value || 0).toLocaleString("en-IN");
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) return "₹0";
+
+  return number.toLocaleString("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0
+  });
 }
 
 function pct(value) {
-  return Number(value || 0).toFixed(1) + "%";
+  const number = Number(value);
+
+  return `${(Number.isFinite(number) ? number : 0).toFixed(1)}%`;
 }
 
 /* NAVBAR SCROLL */
@@ -109,12 +139,18 @@ function showAlert(id, message, type = "success") {
 
 /* SIDEBAR ACTIVE LINK */
 document.querySelectorAll(".sb-item").forEach(link => {
-  if (link.href && link.getAttribute("href")) {
-    const target = new URL(link.href, window.location.href);
+  const href = link.getAttribute("href");
+
+  if (!href) return;
+
+  try {
+    const target = new URL(href, window.location.href);
 
     if (target.pathname === window.location.pathname) {
       link.classList.add("active");
     }
+  } catch (error) {
+    console.warn("Could not check sidebar link:", error);
   }
 });
 
@@ -128,13 +164,17 @@ if (sidebarButton && sidebar) {
   });
 }
 
-/* SCORE RING */
+/* FINANCIAL SCORE RING */
 function drawScoreRing(svgId, score) {
   const svg = document.getElementById(svgId);
 
   if (!svg) return;
 
-  const safeScore = Math.max(0, Math.min(100, Number(score) || 0));
+  const safeScore = Math.max(
+    0,
+    Math.min(100, Number(score) || 0)
+  );
+
   const radius = 52;
   const centerX = 60;
   const centerY = 60;
@@ -143,12 +183,20 @@ function drawScoreRing(svgId, score) {
 
   svg.innerHTML = `
     <circle
-      cx="${centerX}" cy="${centerY}" r="${radius}"
-      fill="none" stroke="#2a2e3d" stroke-width="8"
+      cx="${centerX}"
+      cy="${centerY}"
+      r="${radius}"
+      fill="none"
+      stroke="#2a2e3d"
+      stroke-width="8"
     />
     <circle
-      cx="${centerX}" cy="${centerY}" r="${radius}"
-      fill="none" stroke="#f5a623" stroke-width="8"
+      cx="${centerX}"
+      cy="${centerY}"
+      r="${radius}"
+      fill="none"
+      stroke="#f5a623"
+      stroke-width="8"
       stroke-dasharray="${circumference}"
       stroke-dashoffset="${offset}"
       stroke-linecap="round"
@@ -157,52 +205,93 @@ function drawScoreRing(svgId, score) {
   `;
 }
 
-/* MINI PIE CHART */
+/* EXPENSE PIE CHART */
 function renderPie(containerId, data) {
   const element = document.getElementById(containerId);
 
   if (!element) return;
 
   const colors = [
-    "#f5a623", "#3b82f6", "#22c55e",
-    "#ef4444", "#a78bfa", "#ec4899", "#14b8a6"
+    "#f5a623",
+    "#3b82f6",
+    "#22c55e",
+    "#ef4444",
+    "#a78bfa",
+    "#ec4899",
+    "#14b8a6"
   ];
 
-  const entries = Object.entries(data || {}).filter(
-    ([, value]) => Number(value) > 0
-  );
+  const entries = Object.entries(data || {})
+    .map(([name, value]) => [name, Number(value)])
+    .filter(([, value]) => Number.isFinite(value) && value > 0);
 
   const total = entries.reduce(
-    (sum, [, value]) => sum + Number(value),
+    (sum, [, value]) => sum + value,
     0
   );
 
   if (!total) {
     element.style.background = "transparent";
+
+    const emptyLegend = document.getElementById(
+      containerId + "-legend"
+    );
+
+    if (emptyLegend) {
+      emptyLegend.replaceChildren();
+    }
+
     return;
   }
 
-  let accumulated = 0;
+  let cumulative = 0;
 
-  const stops = entries.map(([category, value], index) => {
-    const percentage = (Number(value) / total) * 100;
-    const stop = `${colors[index % colors.length]} ${accumulated}% ${accumulated + percentage}%`;
-    accumulated += percentage;
-    return stop;
+  const stops = entries.map(([name, value], index) => {
+    const start = cumulative;
+    cumulative += (value / total) * 100;
+
+    return `${colors[index % colors.length]} ${start}% ${cumulative}%`;
   });
 
-  element.style.background = `conic-gradient(${stops.join(", ")})`;
+  element.style.background =
+    `conic-gradient(${stops.join(", ")})`;
+
   element.style.borderRadius = "50%";
 
-  const legend = document.getElementById(containerId + "-legend");
+  const legend = document.getElementById(
+    containerId + "-legend"
+  );
 
   if (legend) {
-    legend.innerHTML = entries.map(([category, value], index) => `
-      <div style="display:flex;align-items:center;gap:.5rem;margin:.25rem 0">
-        <span style="width:12px;height:12px;border-radius:50%;background:${colors[index % colors.length]};flex-shrink:0"></span>
-        <span style="font-size:.82rem;color:#6b7280">${category}</span>
-        <span style="margin-left:auto;font-size:.82rem;font-weight:600">₹${Number(value).toLocaleString("en-IN")}</span>
-      </div>
-    `).join("");
+    legend.replaceChildren();
+
+    entries.forEach(([name, value], index) => {
+      const row = document.createElement("div");
+
+      row.style.cssText =
+        "display:flex;align-items:center;gap:.5rem;margin:.25rem 0";
+
+      const dot = document.createElement("span");
+
+      dot.style.cssText =
+        `width:12px;height:12px;border-radius:50%;flex-shrink:0;background:${colors[index % colors.length]}`;
+
+      const label = document.createElement("span");
+
+      label.style.cssText =
+        "font-size:.82rem;color:#6b7280";
+
+      label.textContent = name;
+
+      const amount = document.createElement("span");
+
+      amount.style.cssText =
+        "margin-left:auto;font-size:.82rem;font-weight:600";
+
+      amount.textContent = inr(value);
+
+      row.append(dot, label, amount);
+      legend.appendChild(row);
+    });
   }
 }

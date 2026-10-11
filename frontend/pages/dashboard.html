@@ -1,206 +1,93 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Dashboard – FinPilot</title>
-  <link rel="stylesheet" href="../css/style.css"/>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-</head>
-<body>
-<div class="page-wrap">
-
-  <!-- SIDEBAR -->
-  <aside class="sidebar">
-    <div class="sb-brand"><span class="logo-icon">◈</span> FinPilot</div>
-    <nav class="sb-nav">
-      <a class="sb-item active" href="dashboard.html"><span class="sb-icon">📊</span> Dashboard</a>
-      <a class="sb-item" href="expenses.html"><span class="sb-icon">💳</span> Expenses</a>
-      <a class="sb-item" href="tax.html"><span class="sb-icon">🧾</span> Tax Calculator</a>
-      <a class="sb-item" href="investments.html"><span class="sb-icon">📈</span> Investments</a>
-      <a class="sb-item" href="schemes.html"><span class="sb-icon">🏛️</span> Govt Schemes</a>
-      <a class="sb-item" href="chatbot.html"><span class="sb-icon">🤖</span> AI Advisor</a>
-    </nav>
-    <div class="sb-user" id="sb-user">Loading...</div>
-    <div class="sb-logout">
-      <button class="btn-outline" style="width:100%;text-align:center" onclick="logout()">Logout</button>
-    </div>
-  </aside>
-
-  <!-- MAIN -->
-  <main class="main-content">
-    <div class="page-header">
-      <h1 id="greet">Good morning! 👋</h1>
-      <p>Here's your financial snapshot for this month</p>
-    </div>
-
-    <!-- KPI CARDS -->
-    <div class="grid-4">
-      <div class="card kpi">
-        <div class="kpi-label">Monthly Income</div>
-        <div class="kpi-value green" id="kpi-income">–</div>
-        <div class="kpi-sub">Your base salary</div>
-      </div>
-      <div class="card kpi">
-        <div class="kpi-label">Total Expenses</div>
-        <div class="kpi-value red" id="kpi-exp">–</div>
-        <div class="kpi-sub">This month</div>
-      </div>
-      <div class="card kpi">
-        <div class="kpi-label">Net Savings</div>
-        <div class="kpi-value amber" id="kpi-save">–</div>
-        <div class="kpi-sub">Income – Expenses</div>
-      </div>
-      <div class="card kpi">
-        <div class="kpi-label">Est. Annual Tax</div>
-        <div class="kpi-value blue" id="kpi-tax">–</div>
-        <div class="kpi-sub">Old regime estimate</div>
-      </div>
-    </div>
-
-    <!-- CHART ROW -->
-    <div class="grid-2">
-      <!-- FINANCIAL SCORE -->
-      <div class="card" style="text-align:center">
-        <div class="card-title">Financial Health Score</div>
-        <div class="score-ring-wrap" style="margin:1rem auto">
-          <svg id="score-svg" width="120" height="120" viewBox="0 0 120 120"></svg>
-          <div class="score-ring-center">
-            <div class="score-ring-num" id="score-num">–</div>
-            <div class="score-ring-label">out of 100</div>
-          </div>
-        </div>
-        <p id="score-tip" style="font-size:.85rem;color:var(--muted);margin-top:.8rem"></p>
-      </div>
-
-      <!-- PIE CHART -->
-      <div class="card">
-        <div class="card-title">Expense Breakdown</div>
-        <div style="display:flex;gap:1.5rem;align-items:center;margin-top:.5rem">
-          <div id="pie-chart" style="width:100px;height:100px;flex-shrink:0"></div>
-          <div id="pie-chart-legend" style="flex:1"></div>
-        </div>
-        <p id="pie-empty" style="color:var(--muted);font-size:.85rem;margin-top:1rem;display:none">
-          No expenses logged yet. <a href="expenses.html" style="color:var(--accent)">Add one →</a>
-        </p>
-      </div>
-    </div>
-
-    <!-- INSIGHTS -->
-    <div class="card" style="margin-bottom:1.5rem">
-      <div class="card-title">Smart Insights</div>
-      <div id="insights-list" style="display:flex;flex-direction:column;gap:.6rem">
-        <p style="color:var(--muted);font-size:.88rem">Loading insights…</p>
-      </div>
-    </div>
-
-    <!-- RECENT EXPENSES -->
-    <div class="card">
-      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
-        Recent Expenses
-        <a href="expenses.html" style="font-size:.8rem;color:var(--accent);text-decoration:none">View All →</a>
-      </div>
-      <table class="data-table">
-        <thead>
-          <tr><th>Category</th><th>Note</th><th>Date</th><th>Amount</th></tr>
-        </thead>
-        <tbody id="recent-tbody">
-          <tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">No expenses yet</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- QUICK NAV CARDS -->
-    <div class="features-grid" style="margin-top:1.5rem">
-      <a href="tax.html" class="feat-card"><div class="feat-icon">🧾</div><h3>Calculate Tax</h3><p>Old vs New regime comparison</p><div class="feat-arrow">→</div></a>
-      <a href="investments.html" class="feat-card"><div class="feat-icon">📈</div><h3>Plan Investments</h3><p>Get personalized SIP allocation</p><div class="feat-arrow">→</div></a>
-      <a href="schemes.html" class="feat-card"><div class="feat-icon">🏛️</div><h3>Find Schemes</h3><p>Government schemes you qualify for</p><div class="feat-arrow">→</div></a>
-      <a href="chatbot.html" class="feat-card feat-card-accent"><div class="feat-icon">🤖</div><h3>Ask AI Advisor</h3><p>Chat about taxes, savings & more</p><div class="feat-arrow">→</div></a>
-    </div>
-  </main>
-</div>
 
 <script src="../js/main.js"></script>
 <script>
-// ── DEMO DATA (used when backend is offline) ──────────────────────────
-const DEMO = {
-  name: 'Ravi Kumar',
-  monthly_income: 50000,
-  monthly_expenses: 31600,
-  monthly_savings: 18400,
-  financial_score: 74,
-  annual_tax_estimate: 24000,
-  expense_by_category: { Food: 10000, Rent: 12000, Travel: 4000, Entertainment: 3000, Health: 2600 },
-  recent_expenses: [
-    {category:'Food',   note:'Groceries',    date:'2025-01-28', amount:2800},
-    {category:'Rent',   note:'Monthly rent', date:'2025-01-01', amount:12000},
-    {category:'Travel', note:'Cab rides',    date:'2025-01-25', amount:1200},
-    {category:'Health', note:'Pharmacy',     date:'2025-01-22', amount:600},
-    {category:'Food',   note:'Zomato',       date:'2025-01-20', amount:450},
-  ]
-};
-
 async function loadDashboard() {
   const user = getUser();
-  let d = DEMO;
 
-  // Set greeting
-  const h = new Date().getHours();
-  const greet = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
-  document.getElementById('greet').textContent = `${greet}, ${user?.name || 'there'}! 👋`;
-
-  // Try backend
-  if (user?.email && user.email !== 'demo@finpilot.in') {
-    try {
-      d = await api('/dashboard?email=' + encodeURIComponent(user.email));
-    } catch(e) { /* use demo */ }
+  if (!user || !user.email ||
+      user.email.toLowerCase() === "demo@finpilot.in") {
+    window.location.replace("login.html");
+    return;
   }
 
-  // Sidebar
-  document.getElementById('sb-user').innerHTML = `<strong>${user?.name || 'Demo User'}</strong>${user?.email || ''}`;
+  const greet = document.getElementById("greet");
+  const sidebar = document.getElementById("sb-user");
 
-  // KPIs
-  document.getElementById('kpi-income').textContent = inr(d.monthly_income);
-  document.getElementById('kpi-exp').textContent    = inr(d.monthly_expenses);
-  document.getElementById('kpi-save').textContent   = inr(d.monthly_savings);
-  document.getElementById('kpi-tax').textContent    = inr(d.annual_tax_estimate);
-
-  // Score
-  const score = d.financial_score || 0;
-  document.getElementById('score-num').textContent = score;
-  drawScoreRing('score-svg', score);
-  document.getElementById('score-tip').textContent =
-    score >= 75 ? '🟢 Excellent financial health!' :
-    score >= 50 ? '🟡 Good, but room to improve.' :
-                  '🔴 Try to cut expenses and save more.';
-
-  // Pie
-  if (d.expense_by_category && Object.keys(d.expense_by_category).length) {
-    renderPie('pie-chart', d.expense_by_category);
-  } else {
-    document.getElementById('pie-empty').style.display = 'block';
+  if (greet) {
+    greet.textContent =
+      `Welcome, ${user.name || user.email}!`;
   }
 
-  // Recent expenses
-  const tbody = document.getElementById('recent-tbody');
-  if (d.recent_expenses?.length) {
-    tbody.innerHTML = d.recent_expenses.map(e => `
-      <tr>
-        <td><span class="badge badge-amber">${e.category}</span></td>
-        <td>${e.note || '–'}</td>
-        <td style="color:var(--muted)">${e.date}</td>
-        <td><strong style="color:var(--red)">${inr(e.amount)}</strong></td>
-      </tr>
-    `).join('');
+  if (sidebar) {
+    sidebar.replaceChildren();
+
+    const name = document.createElement("strong");
+    name.textContent = user.name || user.email;
+
+    const email = document.createElement("div");
+    email.textContent = user.email;
+
+    sidebar.append(name, email);
   }
 
-  // Insights
-  const insights = d.insights || ['Start by logging your monthly expenses to get personalized insights.'];
-  document.getElementById('insights-list').innerHTML = insights.length
-    ? insights.map(i => `<div class="alert alert-info" style="margin:0">${i}</div>`).join('')
-    : `<p style="color:var(--muted);font-size:.88rem">Your finances look healthy! Keep it up.</p>`;
+  try {
+    const data = await api(
+      "/api/dashboard?email=" + encodeURIComponent(user.email)
+    );
+
+    if (data.error || data.success === false) {
+      throw new Error(data.error || "Could not load your dashboard.");
+    }
+
+    const d = data.dashboard || data.data || data;
+
+    const values = {
+      "kpi-income": d.monthly_income,
+      "kpi-exp": d.monthly_expenses,
+      "kpi-save": d.monthly_savings,
+      "kpi-tax": d.annual_tax_estimate
+    };
+
+    for (const [id, value] of Object.entries(values)) {
+      const element = document.getElementById(id);
+
+      if (element) {
+        element.textContent =
+          value == null
+            ? "—"
+            : new Intl.NumberFormat("en-IN", {
+                style: "currency",
+                currency: "INR",
+                maximumFractionDigits: 0
+              }).format(Number(value));
+      }
+    }
+
+    const scoreElement = document.getElementById("score-num");
+
+    if (scoreElement) {
+      scoreElement.textContent = d.financial_score ?? 0;
+    }
+
+    console.log("Dashboard loaded for:", user.email);
+  } catch (error) {
+    console.error("Dashboard loading error:", error);
+
+    for (const id of [
+      "kpi-income", "kpi-exp", "kpi-save", "kpi-tax"
+    ]) {
+      const element = document.getElementById(id);
+      if (element) element.textContent = "Unavailable";
+    }
+
+    const insights = document.getElementById("insights-list");
+
+    if (insights) {
+      insights.textContent =
+        "Unable to load your financial data. Please try again.";
+    }
+  }
 }
 
 loadDashboard();
 </script>
-</body>
-</html>
