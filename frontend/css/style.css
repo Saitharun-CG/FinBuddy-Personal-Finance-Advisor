@@ -1069,89 +1069,130 @@ select option {
 }
 
 
-/* ===== FinBuddy Premium Fintech Theme ===== */
+/* =========================================
+   SMART FINANCE SYSTEM — FINAL POLISH
+========================================= */
 
-:root {
-    --fb-bg: #f4f7fc;
-    --fb-surface: #ffffff;
-    --fb-primary: #635bff;
-    --fb-primary-dark: #493fe0;
-    --fb-text: #172033;
-    --fb-muted: #78839a;
-    --fb-border: #e7ebf3;
-    --fb-green: #0da879;
-    --fb-radius: 20px;
-}
-
+/* Prevent horizontal overflow */
 html {
-    scroll-behavior: smooth;
+  width: 100%;
+  overflow-x: clip;
 }
 
 body {
-    background: var(--fb-bg) !important;
-    color: var(--fb-text);
-    font-family: 'DM Sans', sans-serif !important;
+  min-height: 100vh;
+  overflow-x: clip;
+  color: var(--text);
+  background-color: var(--bg);
 }
 
-h1, h2, h3, h4, h5, h6 {
-    color: var(--fb-text);
-    font-family: 'Syne', sans-serif !important;
-    font-weight: 700;
-    letter-spacing: -0.5px;
+/* Consistent card animation */
+.feat-card,
+.stat-block,
+.scheme-card,
+.inv-card,
+.card,
+.kpi,
+.regime-box {
+  transition:
+    transform 0.22s ease,
+    border-color 0.22s ease,
+    box-shadow 0.22s ease;
 }
 
-p {
-    line-height: 1.7;
+/* Better button feedback */
+button,
+.btn-primary,
+.btn-outline,
+.btn-ghost {
+  -webkit-tap-highlight-color: transparent;
 }
 
-button, input, select, textarea {
-    font-family: 'DM Sans', sans-serif !important;
+button:active,
+.btn-primary:active,
+.btn-outline:active,
+.btn-ghost:active {
+  transform: scale(0.98);
 }
 
-button, .btn, [type="submit"] {
-    transition: transform 0.2s ease,
-                box-shadow 0.2s ease,
-                background 0.2s ease;
+/* Keep form controls readable */
+input,
+select,
+textarea {
+  max-width: 100%;
+  color: var(--text);
 }
 
-button:hover, .btn:hover, [type="submit"]:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 22px rgba(99, 91, 255, 0.2);
+input[type="checkbox"],
+input[type="radio"] {
+  width: auto;
+  min-height: auto;
+  accent-color: var(--accent);
 }
 
-input, select, textarea {
-    border: 1px solid var(--fb-border);
-    border-radius: 12px;
-    padding: 12px 15px;
-    outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
+/* Prevent wide tables from breaking layouts */
+.card,
+.main-content,
+.page-wrap {
+  min-width: 0;
 }
 
-input:focus, select:focus, textarea:focus {
-    border-color: var(--fb-primary);
-    box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.12);
+.data-table {
+  min-width: 520px;
 }
 
-.card, .stat-card, .dashboard-card, .feature-card,
-.summary-card, .balance-card, .transaction-card,
+.table-responsive {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Keep decorative effects behind content */
+.hero,
+.auth-page {
+  isolation: isolate;
+}
+
+.hero-content,
+.hero-visual,
 .auth-card {
-    background: var(--fb-surface);
-    border: 1px solid var(--fb-border);
-    border-radius: var(--fb-radius);
-    box-shadow: 0 8px 30px rgba(29, 42, 72, 0.05);
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
+  position: relative;
+  z-index: 1;
 }
 
-.card:hover, .stat-card:hover, .dashboard-card:hover,
-.feature-card:hover, .summary-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 14px 36px rgba(29, 42, 72, 0.09);
+/* Responsive fixes */
+@media (max-width: 768px) {
+  .grid-4,
+  .grid-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .main-content {
+    width: 100%;
+    padding: 16px;
+  }
+
+  .page-header {
+    overflow-wrap: anywhere;
+  }
+
+  .auth-card {
+    width: 100%;
+  }
+
+  .data-table {
+    font-size: 0.8rem;
+  }
 }
 
-a {
-    transition: color 0.2s ease;
-}
-
-::selection {
-    background: rgba(99, 91, 255, 0.18);
+/* Avoid unnecessary animations for users who prefer less motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
