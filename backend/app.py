@@ -3,8 +3,10 @@ from flask_cors import CORS
 import json, os, hashlib, datetime
 
 app = Flask(__name__, static_folder='static')
-CORS(app)
-@app.route('/')
+
+CORS(app, origins=[
+    "https://finbuddy-frontend.onrender.com"
+])
 def home():
     return jsonify({
         'app': 'FinBuddy Personal Finance Advisor',
