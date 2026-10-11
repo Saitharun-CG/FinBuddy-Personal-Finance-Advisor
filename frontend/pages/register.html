@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Register – FinPilot</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="auth-page">
+  <div class="orb orb-1" style="position:fixed"></div>
+  <div class="orb orb-2" style="position:fixed"></div>
+  <div class="auth-card" style="max-width:500px">
+    <div style="margin-bottom:1.5rem">
+      <a href="../index.html" style="color:var(--accent);font-family:var(--font-head);font-size:1.2rem;text-decoration:none">◈ FinPilot</a>
+    </div>
+    <h2>Create Account</h2>
+    <p>Your free digital CA – takes 2 minutes</p>
+    <div id="msg" class="alert" style="display:none"></div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="name" placeholder="Ravi Kumar"/>
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="email" placeholder="ravi@email.com"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="password" placeholder="Min 6 characters"/>
+      </div>
+      <div class="form-group">
+        <label>Age</label>
+        <input type="number" id="age" placeholder="28" min="18" max="80"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Monthly Income (₹)</label>
+        <input type="number" id="income" placeholder="45000"/>
+      </div>
+      <div class="form-group">
+        <label>Risk Appetite</label>
+        <select id="risk">
+          <option value="conservative">Conservative</option>
+          <option value="moderate" selected>Moderate</option>
+          <option value="aggressive">Aggressive</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn-primary" style="width:100%;padding:.85rem;margin-top:.5rem" onclick="doRegister()">Create Account →</button>
+    <div class="auth-link">
+      Already have an account? <a href="login.html">Login</a>
+    </div>
+  </div>
+</div>
+<script src="../js/main.js"></script>
+<script>
+async function doRegister() {
+  const fields = { name:'name', email:'email', password:'password', age:'age', income:'income', risk:'risk' };
+  const data = {};
+  for (const [k,id] of Object.entries(fields)) {
+    data[k] = document.getElementById(id).value.trim();
+    if (!data[k]) { showAlert('msg', `Please fill in: ${id}`, 'error'); return; }
+  }
+  if (data.password.length < 6) { showAlert('msg','Password must be 6+ characters','error'); return; }
+  try {
+    const r = await api('/register','POST', data);
+    if (r.error) { showAlert('msg', r.error, 'error'); return; }
+    setUser({ name: r.name, email: data.email });
+    showAlert('msg', `Welcome, ${r.name}! Redirecting...`, 'success');
+    setTimeout(() => window.location.href = 'dashboard.html', 1500);
+  } catch(e) {
+    // Demo mode fallback
+    setUser({ name: data.name, email: data.email });
+    showAlert('msg','Demo mode: server not running. Redirecting...','info');
+    setTimeout(() => window.location.href = 'dashboard.html', 1500);
+  }
+}
+</script>
+</body>
+</html>

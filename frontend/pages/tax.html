@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Tax Calculator – FinPilot</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="page-wrap">
+  <aside class="sidebar">
+    <div class="sb-brand"><span class="logo-icon">◈</span> FinPilot</div>
+    <nav class="sb-nav">
+      <a class="sb-item" href="dashboard.html"><span class="sb-icon">📊</span> Dashboard</a>
+      <a class="sb-item" href="expenses.html"><span class="sb-icon">💳</span> Expenses</a>
+      <a class="sb-item active" href="tax.html"><span class="sb-icon">🧾</span> Tax Calculator</a>
+      <a class="sb-item" href="investments.html"><span class="sb-icon">📈</span> Investments</a>
+      <a class="sb-item" href="schemes.html"><span class="sb-icon">🏛️</span> Govt Schemes</a>
+      <a class="sb-item" href="chatbot.html"><span class="sb-icon">🤖</span> AI Advisor</a>
+    </nav>
+    <div class="sb-user" id="sb-user">–</div>
+    <div class="sb-logout">
+      <button class="btn-outline" style="width:100%;text-align:center" onclick="logout()">Logout</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <h1>🧾 Income Tax Calculator</h1>
+      <p>Compare Old vs New tax regime – FY 2024-25</p>
+    </div>
+
+    <div class="grid-2" style="align-items:start">
+      <!-- INPUT FORM -->
+      <div class="card">
+        <div class="card-title">Your Income Details</div>
+        <div class="form-group">
+          <label>Annual Gross Income (₹)</label>
+          <input type="number" id="income" placeholder="600000" oninput="calcTax()"/>
+        </div>
+        <div class="form-group">
+          <label>HRA Received (₹)</label>
+          <input type="number" id="hra" placeholder="120000" oninput="calcTax()"/>
+        </div>
+        <hr style="border-color:var(--border);margin:1rem 0"/>
+        <div class="card-title" style="margin-bottom:.8rem">Deductions (Old Regime)</div>
+        <div class="form-group">
+          <label>Section 80C – PPF/ELSS/LIC (max ₹1,50,000)</label>
+          <input type="number" id="ded80c" placeholder="150000" oninput="calcTax()"/>
+        </div>
+        <div class="form-group">
+          <label>Section 80D – Health Insurance (max ₹25,000)</label>
+          <input type="number" id="ded80d" placeholder="25000" oninput="calcTax()"/>
+        </div>
+        <div class="form-group">
+          <label>Other Deductions (₹)</label>
+          <input type="number" id="other" placeholder="0" oninput="calcTax()"/>
+        </div>
+        <button class="btn-primary" style="width:100%" onclick="calcTax()">Calculate Tax</button>
+      </div>
+
+      <!-- RESULT -->
+      <div>
+        <div id="result-box" style="display:none">
+          <div class="regime-compare" style="margin-bottom:1.5rem">
+            <div class="regime-box" id="old-box">
+              <h3>Old Regime</h3>
+              <div class="regime-tax" id="old-tax">–</div>
+              <div class="regime-eff" id="old-eff"></div>
+              <div id="old-badge" style="display:none" class="regime-badge">✔ Recommended</div>
+            </div>
+            <div class="regime-box" id="new-box">
+              <h3>New Regime</h3>
+              <div class="regime-tax" id="new-tax">–</div>
+              <div class="regime-eff" id="new-eff"></div>
+              <div id="new-badge" style="display:none" class="regime-badge">✔ Recommended</div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-bottom:1rem">
+            <div class="card-title">You Save</div>
+            <div id="you-save" style="font-family:var(--font-head);font-size:2rem;font-weight:800;color:var(--green)"></div>
+            <div id="save-tip" style="color:var(--muted);font-size:.88rem;margin-top:.4rem"></div>
+          </div>
+
+          <!-- TAX SLAB TABLE -->
+          <div class="card">
+            <div class="card-title">Tax Slab Reference (Old Regime)</div>
+            <table class="data-table">
+              <thead><tr><th>Income Range</th><th>Rate</th></tr></thead>
+              <tbody>
+                <tr><td>Up to ₹2,50,000</td><td><span class="badge badge-green">Nil</span></td></tr>
+                <tr><td>₹2,50,001 – ₹5,00,000</td><td><span class="badge badge-amber">5%</span></td></tr>
+                <tr><td>₹5,00,001 – ₹10,00,000</td><td><span class="badge badge-amber">20%</span></td></tr>
+                <tr><td>Above ₹10,00,000</td><td><span class="badge badge-red">30%</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- EMPTY STATE -->
+        <div id="empty-state" class="card" style="text-align:center;padding:3rem">
+          <div style="font-size:3rem;margin-bottom:1rem">🧾</div>
+          <p style="color:var(--muted)">Enter your income details on the left to calculate tax and compare regimes.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAX TIPS -->
+    <div class="card" style="margin-top:1.5rem">
+      <div class="card-title">💡 Smart Tax Saving Tips</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:1rem;margin-top:.5rem">
+        <div class="alert alert-info" style="margin:0">
+          <strong>Section 80C (₹1.5L)</strong><br/>
+          Invest in PPF, ELSS mutual funds, LIC, or NSC to save up to ₹46,800 in tax.
+        </div>
+        <div class="alert alert-info" style="margin:0">
+          <strong>NPS – 80CCD(1B) (₹50K)</strong><br/>
+          Additional ₹50,000 deduction beyond 80C via National Pension System.
+        </div>
+        <div class="alert alert-info" style="margin:0">
+          <strong>Home Loan (Sec 24)</strong><br/>
+          Claim up to ₹2,00,000 interest deduction on housing loan.
+        </div>
+        <div class="alert alert-info" style="margin:0">
+          <strong>80D – Health Insurance</strong><br/>
+          Premium paid for self + parents: up to ₹50,000 deduction.
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="../js/main.js"></script>
+<script>
+const user = getUser();
+if (user) document.getElementById('sb-user').innerHTML = `<strong>${user.name}</strong>${user.email}`;
+
+// Pure JS tax calculation (works offline)
+function oldRegime(income, d80c, d80d, hra, other) {
+  const taxable = Math.max(0, income - Math.min(d80c,150000) - Math.min(d80d,25000) - hra - other);
+  let tax = 0, rem = taxable;
+  const slabs = [[250000,0],[250000,.05],[500000,.20],[Infinity,.30]];
+  for (const [s,r] of slabs) { const c=Math.min(rem,s); tax+=c*r; rem-=c; if(rem<=0)break; }
+  return { taxable, tax: Math.round(tax) };
+}
+
+function newRegime(income) {
+  let tax = 0, rem = income;
+  const slabs = [[300000,0],[300000,.05],[300000,.10],[300000,.15],[300000,.20],[Infinity,.30]];
+  for (const [s,r] of slabs) { const c=Math.min(rem,s); tax+=c*r; rem-=c; if(rem<=0)break; }
+  return Math.round(tax);
+}
+
+function calcTax() {
+  const income = parseFloat(document.getElementById('income').value)||0;
+  if (income <= 0) { document.getElementById('result-box').style.display='none'; document.getElementById('empty-state').style.display='block'; return; }
+
+  const hra   = parseFloat(document.getElementById('hra').value)||0;
+  const d80c  = parseFloat(document.getElementById('ded80c').value)||0;
+  const d80d  = parseFloat(document.getElementById('ded80d').value)||0;
+  const other = parseFloat(document.getElementById('other').value)||0;
+
+  const old = oldRegime(income, d80c, d80d, hra, other);
+  const newT = newRegime(income);
+  const recommended = old.tax <= newT ? 'old' : 'new';
+  const saves = Math.abs(old.tax - newT);
+
+  document.getElementById('old-tax').textContent = inr(old.tax);
+  document.getElementById('old-eff').textContent  = `Taxable: ${inr(old.taxable)} | Rate: ${pct(old.tax/income*100)}`;
+  document.getElementById('new-tax').textContent = inr(newT);
+  document.getElementById('new-eff').textContent  = `Taxable: ${inr(income)} | Rate: ${pct(newT/income*100)}`;
+
+  document.getElementById('old-box').classList.toggle('recommended', recommended==='old');
+  document.getElementById('new-box').classList.toggle('recommended', recommended==='new');
+  document.getElementById('old-badge').style.display = recommended==='old' ? 'inline-block' : 'none';
+  document.getElementById('new-badge').style.display = recommended==='new' ? 'inline-block' : 'none';
+
+  document.getElementById('you-save').textContent = inr(saves);
+  document.getElementById('save-tip').textContent = `By choosing the ${recommended==='old'?'Old':'New'} Regime, you save ${inr(saves)} annually.`;
+
+  document.getElementById('result-box').style.display = 'block';
+  document.getElementById('empty-state').style.display = 'none';
+}
+</script>
+</body>
+</html>

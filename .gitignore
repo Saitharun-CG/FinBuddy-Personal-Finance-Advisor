@@ -1,0 +1,15 @@
+Python virtual environment
+
+.venv/ venv/ pycache/ *.py[cod]
+
+Secrets and environment variables
+
+.env .env.* !.env.example
+
+Editor and operating system files
+
+.vscode/ .DS_Store Thumbs.db
+
+Logs
+
+*.log

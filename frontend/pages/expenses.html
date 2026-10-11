@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Expense Tracker – FinPilot</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="page-wrap">
+  <aside class="sidebar">
+    <div class="sb-brand"><span class="logo-icon">◈</span> FinPilot</div>
+    <nav class="sb-nav">
+      <a class="sb-item" href="dashboard.html"><span class="sb-icon">📊</span> Dashboard</a>
+      <a class="sb-item active" href="expenses.html"><span class="sb-icon">💳</span> Expenses</a>
+      <a class="sb-item" href="tax.html"><span class="sb-icon">🧾</span> Tax Calculator</a>
+      <a class="sb-item" href="investments.html"><span class="sb-icon">📈</span> Investments</a>
+      <a class="sb-item" href="schemes.html"><span class="sb-icon">🏛️</span> Govt Schemes</a>
+      <a class="sb-item" href="chatbot.html"><span class="sb-icon">🤖</span> AI Advisor</a>
+    </nav>
+    <div class="sb-user" id="sb-user">–</div>
+    <div class="sb-logout">
+      <button class="btn-outline" style="width:100%;text-align:center" onclick="logout()">Logout</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <h1>💳 Expense Tracker</h1>
+      <p>Log, categorize and analyze your spending</p>
+    </div>
+
+    <div id="msg" class="alert" style="display:none"></div>
+
+    <!-- ADD EXPENSE FORM -->
+    <div class="card" style="margin-bottom:1.5rem">
+      <div class="card-title">Add New Expense</div>
+      <div class="form-row-3">
+        <div class="form-group">
+          <label>Category</label>
+          <select id="category">
+            <option>Food</option><option>Rent</option><option>Travel</option>
+            <option>Entertainment</option><option>Health</option><option>Education</option>
+            <option>Clothing</option><option>Utilities</option><option>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Amount (₹)</label>
+          <input type="number" id="amount" placeholder="1500"/>
+        </div>
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" id="date"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Note (optional)</label>
+        <input type="text" id="note" placeholder="e.g., Grocery shopping at D-Mart"/>
+      </div>
+      <button class="btn-primary" onclick="addExpense()">+ Add Expense</button>
+    </div>
+
+    <!-- SUMMARY -->
+    <div class="grid-4" style="margin-bottom:1.5rem">
+      <div class="card kpi">
+        <div class="kpi-label">Total Spent</div>
+        <div class="kpi-value red" id="total-spent">₹0</div>
+      </div>
+      <div class="card kpi">
+        <div class="kpi-label">Net Savings</div>
+        <div class="kpi-value green" id="net-savings">–</div>
+      </div>
+      <div class="card kpi">
+        <div class="kpi-label">Health Score</div>
+        <div class="kpi-value amber" id="fin-score">–</div>
+      </div>
+      <div class="card kpi">
+        <div class="kpi-label">Expenses Logged</div>
+        <div class="kpi-value blue" id="exp-count">0</div>
+      </div>
+    </div>
+
+    <!-- PIE + INSIGHTS -->
+    <div class="grid-2" style="margin-bottom:1.5rem">
+      <div class="card">
+        <div class="card-title">Spending by Category</div>
+        <div style="display:flex;gap:1.5rem;align-items:center;margin-top:.5rem">
+          <div id="pie-chart" style="width:110px;height:110px;flex-shrink:0"></div>
+          <div id="pie-chart-legend" style="flex:1"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Smart Insights</div>
+        <div id="insights" style="display:flex;flex-direction:column;gap:.6rem;margin-top:.5rem">
+          <p style="color:var(--muted);font-size:.85rem">Add expenses to see insights</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="card">
+      <div class="card-title">All Expenses</div>
+      <table class="data-table">
+        <thead>
+          <tr><th>Category</th><th>Note</th><th>Date</th><th>Amount</th><th>Action</th></tr>
+        </thead>
+        <tbody id="exp-tbody">
+          <tr><td colspan="5" style="color:var(--muted);text-align:center;padding:2rem">No expenses yet. Add one above!</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="../js/main.js"></script>
+<script>
+// Local storage fallback
+let localExpenses = JSON.parse(localStorage.getItem('fp_expenses') || '[]');
+let idCounter = localExpenses.length ? Math.max(...localExpenses.map(e=>e.id)) + 1 : 1;
+let income = 50000; // default demo
+
+// Set today's date
+document.getElementById('date').value = new Date().toISOString().split('T')[0];
+
+const user = getUser();
+if (user) document.getElementById('sb-user').innerHTML = `<strong>${user.name}</strong>${user.email}`;
+
+async function loadIncome() {
+  if (!user?.email) return;
+  try {
+    const p = await api('/profile?email=' + encodeURIComponent(user.email));
+    if (p.income) income = p.income;
+  } catch(e) {}
+}
+
+function saveLocal() { localStorage.setItem('fp_expenses', JSON.stringify(localExpenses)); }
+
+async function addExpense() {
+  const amount = parseFloat(document.getElementById('amount').value);
+  const category = document.getElementById('category').value;
+  const date = document.getElementById('date').value;
+  const note = document.getElementById('note').value.trim();
+
+  if (!amount || amount <= 0) { showAlert('msg','Enter a valid amount','error'); return; }
+
+  const entry = { id: idCounter++, category, amount, date, note };
+
+  // Try server, fall back to local
+  let saved = false;
+  if (user?.email && user.email !== 'demo@finpilot.in') {
+    try {
+      await api('/expenses','POST', { email: user.email, ...entry });
+      saved = true;
+    } catch(e) {}
+  }
+  if (!saved) {
+    localExpenses.push(entry);
+    saveLocal();
+  }
+
+  document.getElementById('amount').value = '';
+  document.getElementById('note').value = '';
+  showAlert('msg','Expense added successfully!','success');
+  await renderAll();
+}
+
+async function deleteExpense(id) {
+  let deleted = false;
+  if (user?.email && user.email !== 'demo@finpilot.in') {
+    try {
+      await api(`/expenses/${id}?email=` + encodeURIComponent(user.email),'DELETE');
+      deleted = true;
+    } catch(e) {}
+  }
+  if (!deleted) {
+    localExpenses = localExpenses.filter(e=>e.id!==id);
+    saveLocal();
+  }
+  await renderAll();
+}
+
+async function getExpenses() {
+  if (user?.email && user.email !== 'demo@finpilot.in') {
+    try { return await api('/expenses?email='+encodeURIComponent(user.email)); } catch(e) {}
+  }
+  return localExpenses;
+}
+
+async function getSummary(expenses) {
+  if (user?.email && user.email !== 'demo@finpilot.in') {
+    try { return await api('/expenses/summary?email='+encodeURIComponent(user.email)); } catch(e) {}
+  }
+  const total = expenses.reduce((a,e)=>a+e.amount,0);
+  const by_category = {};
+  expenses.forEach(e=>{ by_category[e.category]=(by_category[e.category]||0)+e.amount; });
+  const savings = income - total;
+  const score = Math.max(0, Math.min(100, Math.round(savings/income*100)));
+  return { total_expenses:total, savings, by_category, financial_score:score, insights:[] };
+}
+
+async function renderAll() {
+  const expenses = await getExpenses();
+  const summary  = await getSummary(expenses);
+
+  // KPIs
+  document.getElementById('total-spent').textContent = inr(summary.total_expenses);
+  document.getElementById('net-savings').textContent  = inr(summary.savings);
+  document.getElementById('fin-score').textContent    = summary.financial_score + '/100';
+  document.getElementById('exp-count').textContent    = expenses.length;
+
+  // Pie
+  if (Object.keys(summary.by_category||{}).length) {
+    renderPie('pie-chart', summary.by_category);
+  }
+
+  // Insights
+  const ins = summary.insights || [];
+  document.getElementById('insights').innerHTML = ins.length
+    ? ins.map(i=>`<div class="alert alert-info" style="margin:0">${i}</div>`).join('')
+    : `<p style="color:var(--green);font-size:.85rem">✅ Great spending habits! No major alerts.</p>`;
+
+  // Table
+  const tbody = document.getElementById('exp-tbody');
+  if (expenses.length) {
+    tbody.innerHTML = [...expenses].reverse().map(e=>`
+      <tr>
+        <td><span class="badge badge-amber">${e.category}</span></td>
+        <td>${e.note||'–'}</td>
+        <td style="color:var(--muted)">${e.date}</td>
+        <td><strong style="color:var(--red)">${inr(e.amount)}</strong></td>
+        <td><button class="btn-danger" onclick="deleteExpense(${e.id})">🗑 Delete</button></td>
+      </tr>
+    `).join('');
+  } else {
+    tbody.innerHTML = `<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:2rem">No expenses yet.</td></tr>`;
+  }
+}
+
+loadIncome().then(renderAll);
+</script>
+</body>
+</html>

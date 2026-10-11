@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>AI Advisor – FinPilot</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="page-wrap">
+  <aside class="sidebar">
+    <div class="sb-brand"><span class="logo-icon">◈</span> FinPilot</div>
+    <nav class="sb-nav">
+      <a class="sb-item" href="dashboard.html"><span class="sb-icon">📊</span> Dashboard</a>
+      <a class="sb-item" href="expenses.html"><span class="sb-icon">💳</span> Expenses</a>
+      <a class="sb-item" href="tax.html"><span class="sb-icon">🧾</span> Tax Calculator</a>
+      <a class="sb-item" href="investments.html"><span class="sb-icon">📈</span> Investments</a>
+      <a class="sb-item" href="schemes.html"><span class="sb-icon">🏛️</span> Govt Schemes</a>
+      <a class="sb-item active" href="chatbot.html"><span class="sb-icon">🤖</span> AI Advisor</a>
+    </nav>
+    <div class="sb-user" id="sb-user">–</div>
+    <div class="sb-logout">
+      <button class="btn-outline" style="width:100%;text-align:center" onclick="logout()">Logout</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <h1>🤖 AI Financial Advisor</h1>
+      <p>Ask anything about taxes, savings, investments, or government schemes</p>
+    </div>
+
+    <!-- QUICK PROMPTS -->
+    <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1rem">
+      <button class="btn-outline" style="font-size:.8rem" onclick="sendQuick('How can I save income tax?')">💡 How to save tax?</button>
+      <button class="btn-outline" style="font-size:.8rem" onclick="sendQuick('Where should I invest ₹5000 per month?')">📈 Where to invest ₹5000?</button>
+      <button class="btn-outline" style="font-size:.8rem" onclick="sendQuick('What is the 50-30-20 budget rule?')">📊 50-30-20 rule?</button>
+      <button class="btn-outline" style="font-size:.8rem" onclick="sendQuick('Tell me about PMJJBY insurance scheme')">🏛️ About PMJJBY?</button>
+      <button class="btn-outline" style="font-size:.8rem" onclick="sendQuick('What is SIP and how does it work?')">🔁 What is SIP?</button>
+      <button class="btn-outline" style="font-size:.8rem" onclick="sendQuick('How to improve my credit score?')">💳 Credit score tips?</button>
+    </div>
+
+    <!-- CHAT WINDOW -->
+    <div class="chat-window">
+      <div class="chat-msgs" id="chat-msgs">
+        <div class="msg msg-bot">
+          👋 Hi! I'm <strong>FinPilot AI</strong>, your digital Chartered Accountant.<br/><br/>
+          Ask me anything about <em>income tax, investments, savings strategies, budgeting,</em> or <em>government schemes</em>. I'm here to help!
+        </div>
+      </div>
+      <div class="chat-input-row">
+        <input type="text" id="chat-input" placeholder="e.g. How do I save tax under Section 80C?" onkeydown="if(event.key==='Enter') sendMsg()"/>
+        <button class="btn-primary" onclick="sendMsg()">Send →</button>
+        <button class="btn-outline" onclick="clearChat()">Clear</button>
+      </div>
+    </div>
+
+    <!-- DISCLAIMER -->
+    <p style="color:var(--muted);font-size:.76rem;margin-top:.8rem">
+      ⚠️ FinPilot AI provides general financial information. It is not a SEBI-registered advisor.
+      For large investments or complex tax matters, consult a Chartered Accountant.
+    </p>
+  </main>
+</div>
+
+<script src="../js/main.js"></script>
+<script>
+const user = getUser();
+if (user) document.getElementById('sb-user').innerHTML = `<strong>${user.name}</strong>${user.email}`;
+
+// ── RULE-BASED RESPONSES (works offline) ────────────────────────
+const KB = {
+  tax: [
+    "Under <strong>Section 80C</strong>, you can invest up to ₹1,50,000 in PPF, ELSS mutual funds, NSC, LIC premium, or EPF to reduce taxable income.",
+    "Compare Old vs New regime using our <a href='tax.html' style='color:var(--accent)'>Tax Calculator</a>. Old regime is better if deductions exceed ₹3.75L.",
+    "Section <strong>80D</strong> allows deduction for health insurance premiums — up to ₹25,000 for self and ₹50,000 for senior citizen parents.",
+    "NPS (National Pension System) gives an <strong>extra ₹50,000</strong> deduction under 80CCD(1B) beyond the 80C limit.",
+    "Home loan interest is deductible up to <strong>₹2 lakh/year</strong> under Section 24 of the Income Tax Act."
+  ],
+  invest: [
+    "For beginners: Start a <strong>SIP of ₹500-₹1000/month</strong> in an index fund. Time in market beats timing the market!",
+    "The rule of 72: Divide 72 by your return rate to know how many years to double money. At 12%, money doubles in 6 years.",
+    "<strong>SIP ₹3,000/month</strong> for 15 years at 12% return = ~₹20 lakhs. Compound interest is magic.",
+    "For safe returns: <strong>PPF at 7.1%</strong> (tax-free), <strong>FD at 7%</strong>, <strong>SCSS at 8.2%</strong> for seniors.",
+    "ELSS mutual funds: Tax-saving (80C) + equity growth + only 3-year lock-in. Best of all worlds!"
+  ],
+  budget: [
+    "Follow the <strong>50-30-20 rule</strong>: 50% on needs (rent, food), 30% on wants (entertainment), 20% on savings & investments.",
+    "Track expenses daily. Use our <a href='expenses.html' style='color:var(--accent)'>Expense Tracker</a> to find where money leaks.",
+    "Pay yourself first — on salary day, immediately transfer 20% to savings before spending.",
+    "Reduce food delivery apps (Zomato/Swiggy) from 8x to 2x/month and save ₹3,000–₹5,000 monthly.",
+    "Automate your SIP so you never skip an investment because of impulsive spending."
+  ],
+  sip: [
+    "SIP (Systematic Investment Plan) means investing a fixed amount monthly in a mutual fund — as low as ₹100/month.",
+    "Benefits of SIP: Rupee cost averaging, no need to time the market, discipline in saving, compound growth over years.",
+    "Best SIP funds for beginners: Nifty 50 Index Fund, Parag Parikh Flexi Cap, Mirae Asset Large Cap.",
+    "₹2,000/month SIP for 20 years at 12% = ₹19.8 lakhs invested, grows to <strong>₹1.98 crore</strong>. That's the power of compounding!"
+  ],
+  saving: [
+    "Build an <strong>emergency fund</strong> of 3-6 months of expenses before any investment. Keep it in a liquid fund or savings account.",
+    "Save first, spend later — not the other way around. Automate transfers on salary day.",
+    "Cancel subscriptions you haven't used in 30 days. Most people waste ₹500–₹2000/month on unused apps.",
+    "Review insurance policies — term insurance is cheapest, don't mix insurance with investment (avoid endowment plans)."
+  ],
+  scheme: [
+    "<strong>PMJJBY</strong>: ₹2 lakh life cover for just ₹436/year — the most affordable life insurance in India.",
+    "<strong>Sukanya Samriddhi</strong>: 8.2% tax-free interest for girl child below 10. Best way to plan for daughter's future.",
+    "<strong>Atal Pension Yojana</strong>: Guaranteed pension of ₹1,000–₹5,000/month from age 60. Enroll before age 40!",
+    "<strong>PM Awas Yojana</strong>: Interest subsidy on home loan if annual income < ₹18 lakh and you don't own a house.",
+    "<strong>NPS</strong>: Extra ₹50,000 tax deduction + pension + partial tax-free withdrawal at retirement."
+  ],
+  loan: [
+    "A <strong>CIBIL score above 750</strong> gets you best loan interest rates. Pay EMIs on time every month.",
+    "Never take personal loans for consumption (phone, vacation). Only use for genuine emergencies or education.",
+    "Prepay loans whenever you have extra money — saved interest = guaranteed return better than FD.",
+    "Compare loan rates on BankBazaar or Paisabazaar before taking any loan — rates can vary by 3-5%."
+  ],
+  default: [
+    "I can help you with: tax saving, investment planning, budgeting, SIP, government schemes, and loan tips. What would you like to know?",
+    "Great question! Try asking about specific topics like <em>'How to save tax'</em>, <em>'Where to invest ₹3000'</em>, or <em>'About SIP'</em>."
+  ]
+};
+
+function getBotReply(msg) {
+  msg = msg.toLowerCase();
+  if (/tax|80c|80d|itr|regime|deduct|tds/.test(msg))    return rand(KB.tax);
+  if (/sip|systematic/.test(msg))                         return rand(KB.sip);
+  if (/invest|mutual|fund|elss|ppf|nps|fd|stock|equity/.test(msg)) return rand(KB.invest);
+  if (/budget|expense|spend|track|zero-based/.test(msg)) return rand(KB.budget);
+  if (/save|saving|emergency/.test(msg))                 return rand(KB.saving);
+  if (/scheme|government|pmjjby|sukanya|atal|awas|jan dhan|mudra/.test(msg)) return rand(KB.scheme);
+  if (/loan|emi|cibil|credit score|borrow/.test(msg))   return rand(KB.loan);
+  return rand(KB.default);
+}
+
+function rand(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
+
+function appendMsg(text, role) {
+  const div = document.createElement('div');
+  div.className = `msg msg-${role}`;
+  div.innerHTML = text;
+  document.getElementById('chat-msgs').appendChild(div);
+  document.getElementById('chat-msgs').scrollTop = 9999;
+}
+
+function typingIndicator(show) {
+  const id = 'typing-indicator';
+  if (show) {
+    const d = document.createElement('div');
+    d.id = id; d.className = 'msg msg-bot';
+    d.innerHTML = '<em style="color:var(--muted)">FinPilot AI is typing…</em>';
+    document.getElementById('chat-msgs').appendChild(d);
+    document.getElementById('chat-msgs').scrollTop = 9999;
+  } else {
+    document.getElementById(id)?.remove();
+  }
+}
+
+async function sendMsg() {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  appendMsg(msg, 'user');
+  typingIndicator(true);
+
+  let reply;
+  // Try backend
+  try {
+    const r = await api('/chat','POST',{message:msg});
+    reply = r.reply;
+  } catch(e) {
+    reply = getBotReply(msg);
+  }
+  if (!reply) reply = getBotReply(msg);
+
+  setTimeout(() => { typingIndicator(false); appendMsg(reply, 'bot'); }, 700);
+}
+
+function sendQuick(msg) {
+  document.getElementById('chat-input').value = msg;
+  sendMsg();
+}
+
+function clearChat() {
+  document.getElementById('chat-msgs').innerHTML = `
+    <div class="msg msg-bot">
+      👋 Hi! I'm <strong>FinPilot AI</strong>, your digital Chartered Accountant.<br/><br/>
+      Ask me anything about <em>income tax, investments, savings strategies, budgeting,</em> or <em>government schemes</em>.
+    </div>`;
+}
+</script>
+</body>
+</html>

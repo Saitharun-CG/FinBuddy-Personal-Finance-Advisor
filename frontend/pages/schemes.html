@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Govt Schemes – FinPilot</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="page-wrap">
+  <aside class="sidebar">
+    <div class="sb-brand"><span class="logo-icon">◈</span> FinPilot</div>
+    <nav class="sb-nav">
+      <a class="sb-item" href="dashboard.html"><span class="sb-icon">📊</span> Dashboard</a>
+      <a class="sb-item" href="expenses.html"><span class="sb-icon">💳</span> Expenses</a>
+      <a class="sb-item" href="tax.html"><span class="sb-icon">🧾</span> Tax Calculator</a>
+      <a class="sb-item" href="investments.html"><span class="sb-icon">📈</span> Investments</a>
+      <a class="sb-item active" href="schemes.html"><span class="sb-icon">🏛️</span> Govt Schemes</a>
+      <a class="sb-item" href="chatbot.html"><span class="sb-icon">🤖</span> AI Advisor</a>
+    </nav>
+    <div class="sb-user" id="sb-user">–</div>
+    <div class="sb-logout">
+      <button class="btn-outline" style="width:100%;text-align:center" onclick="logout()">Logout</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <h1>🏛️ Government Scheme Finder</h1>
+      <p>Discover financial schemes that you're eligible for</p>
+    </div>
+
+    <!-- FILTER BAR -->
+    <div class="card" style="margin-bottom:1.5rem;display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end">
+      <div class="form-group" style="margin:0;flex:1;min-width:200px">
+        <label>Your Annual Income (₹) to filter eligible schemes</label>
+        <input type="number" id="filter-income" placeholder="600000" oninput="filterSchemes()"/>
+      </div>
+      <div class="form-group" style="margin:0">
+        <label>Category</label>
+        <select id="filter-cat" onchange="filterSchemes()">
+          <option value="">All Categories</option>
+          <option>Banking</option>
+          <option>Insurance</option>
+          <option>Pension</option>
+          <option>Savings</option>
+          <option>Housing</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="filterSchemes()">Filter</button>
+    </div>
+
+    <div id="scheme-count" style="color:var(--muted);font-size:.88rem;margin-bottom:1rem"></div>
+    <div class="scheme-grid" id="scheme-grid"></div>
+  </main>
+</div>
+
+<script src="../js/main.js"></script>
+<script>
+const user = getUser();
+if (user) document.getElementById('sb-user').innerHTML = `<strong>${user.name}</strong>${user.email}`;
+
+const SCHEMES = [
+  {
+    name: 'PM Jan Dhan Yojana', category: 'Banking',
+    benefit: 'Free savings account with ₹10,000 overdraft facility and ₹2 lakh accident insurance',
+    eligibility: 'Any Indian citizen without a bank account',
+    income_max: 9999999, url: 'https://pmjdy.gov.in', emoji: '🏦'
+  },
+  {
+    name: 'Atal Pension Yojana (APY)', category: 'Pension',
+    benefit: 'Guaranteed monthly pension of ₹1,000–₹5,000 after the age of 60',
+    eligibility: 'Age 18–40 with a savings bank account',
+    income_max: 9999999, url: 'https://enps.nsdl.com', emoji: '👴'
+  },
+  {
+    name: 'PMJJBY – Life Insurance', category: 'Insurance',
+    benefit: '₹2 lakh life insurance cover at just ₹436/year — best value in India',
+    eligibility: 'Age 18–50 with an active savings bank account',
+    income_max: 9999999, url: 'https://jansuraksha.gov.in', emoji: '🛡️'
+  },
+  {
+    name: 'PMSBY – Accident Insurance', category: 'Insurance',
+    benefit: '₹2 lakh accident insurance at only ₹20/year',
+    eligibility: 'Age 18–70 with an active savings bank account',
+    income_max: 9999999, url: 'https://jansuraksha.gov.in', emoji: '🏥'
+  },
+  {
+    name: 'Sukanya Samriddhi Yojana', category: 'Savings',
+    benefit: '8.2% interest rate, fully tax-free — for girl child education and marriage',
+    eligibility: 'Parents/guardians of girl child below 10 years of age',
+    income_max: 9999999, url: 'https://www.indiapost.gov.in', emoji: '👧'
+  },
+  {
+    name: 'PM Awas Yojana (Urban)', category: 'Housing',
+    benefit: 'Interest subsidy of up to ₹2.67 lakh on a home loan under CLSS',
+    eligibility: 'Annual income below ₹18 lakh, no pucca house anywhere in India',
+    income_max: 1800000, url: 'https://pmaymis.gov.in', emoji: '🏠'
+  },
+  {
+    name: 'National Pension System (NPS)', category: 'Pension',
+    benefit: 'Extra ₹50,000 tax deduction under 80CCD(1B) + market-linked retirement corpus',
+    eligibility: 'Any Indian citizen aged 18–70',
+    income_max: 9999999, url: 'https://www.npscra.nsdl.co.in', emoji: '📋'
+  },
+  {
+    name: 'Kisan Vikas Patra', category: 'Savings',
+    benefit: 'Money doubles in ~115 months at 7.5% annual interest — Post Office scheme',
+    eligibility: 'Any Indian adult (single or jointly)',
+    income_max: 9999999, url: 'https://www.indiapost.gov.in', emoji: '🌱'
+  },
+  {
+    name: 'Senior Citizen Savings Scheme', category: 'Savings',
+    benefit: '8.2% interest per annum, quarterly payouts — best for retired seniors',
+    eligibility: 'Indian citizens aged 60+',
+    income_max: 9999999, url: 'https://www.indiapost.gov.in', emoji: '🧓'
+  },
+  {
+    name: 'PM Mudra Yojana', category: 'Banking',
+    benefit: 'Collateral-free loans up to ₹10 lakh for small businesses (Shishu/Kishor/Tarun)',
+    eligibility: 'Non-corporate small business owners, artisans, shopkeepers',
+    income_max: 9999999, url: 'https://www.mudra.org.in', emoji: '💼'
+  },
+];
+
+const catColors = {
+  Banking:'blue', Insurance:'green', Pension:'amber', Savings:'amber', Housing:'blue'
+};
+
+function renderSchemes(list) {
+  const grid = document.getElementById('scheme-grid');
+  document.getElementById('scheme-count').textContent = `Showing ${list.length} scheme${list.length!==1?'s':''}`;
+  if (!list.length) {
+    grid.innerHTML = `<div class="card" style="text-align:center;padding:3rem;grid-column:1/-1"><p style="color:var(--muted)">No schemes match your filter. Try adjusting income or category.</p></div>`;
+    return;
+  }
+  grid.innerHTML = list.map(s=>`
+    <div class="scheme-card">
+      <div class="scheme-cat">
+        <span class="badge badge-${catColors[s.category]||'amber'}">${s.category}</span>
+      </div>
+      <div class="scheme-name">${s.emoji} ${s.name}</div>
+      <div class="scheme-benefit">${s.benefit}</div>
+      <div class="scheme-eligibility"><strong>Eligibility:</strong> ${s.eligibility}</div>
+      <a href="${s.url}" target="_blank" class="btn-outline" style="font-size:.82rem;padding:.4rem .9rem;display:inline-block">
+        Apply / Learn More →
+      </a>
+    </div>
+  `).join('');
+}
+
+function filterSchemes() {
+  const income = parseFloat(document.getElementById('filter-income').value)||9999999;
+  const cat    = document.getElementById('filter-cat').value;
+  const filtered = SCHEMES.filter(s=>
+    s.income_max >= income && (!cat || s.category === cat)
+  );
+  renderSchemes(filtered);
+}
+
+// Initial render
+renderSchemes(SCHEMES);
+</script>
+</body>
+</html>
